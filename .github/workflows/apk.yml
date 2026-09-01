@@ -54,13 +54,15 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
+      # Name mit Branch und Commit, damit sich heruntergeladene Pakete
+      # auseinanderhalten lassen. Ablage im Wurzelverzeichnis, worauf sich
+      # die Pfade der folgenden Schritte beziehen.
       - name: Benennen
-        id: apk
         run: |
           mkdir -p ../out
           cp android/app/build/outputs/apk/debug/app-debug.apk \
              "../out/revierpilot-${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}.apk"
-          echo "pfad=out/$(ls ../out)" >> "$GITHUB_OUTPUT"
+          ls -lh ../out
 
       - uses: actions/upload-artifact@v4
         with:
