@@ -32,8 +32,8 @@ function Canvas() {
   const { state: s, set } = useApp();
 
   return (
-    <div style={{
-      minHeight: '100vh', padding: '24px 40px 60px',
+    <div className="canvas" style={{
+      minHeight: '100vh',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18,
     }}>
       <div style={{ width: '100%', maxWidth: 900, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -65,9 +65,11 @@ function Canvas() {
         </p>
       </div>
 
-      <AndroidDevice width={DEVICE_W} height={DEVICE_H} dark={s.night}>
-        <AppFrame />
-      </AndroidDevice>
+      <div className="stage">
+        <AndroidDevice width={DEVICE_W} height={DEVICE_H} dark={s.night}>
+          <AppFrame />
+        </AndroidDevice>
+      </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
         <span style={{

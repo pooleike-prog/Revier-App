@@ -8,16 +8,27 @@ export const MAP_H = 520;
 const ORIGIN_X = MAP_W / 2;
 const ORIGIN_Y = MAP_H / 2;
 
+/** Verkleinert die Seite das Gerät (schmales Display, Browser-Zoom), rechnen
+ *  Zeiger-Koordinaten in einem anderen Maßstab als das Kartenraster. Der Faktor
+ *  hier holt das zurück, damit ein Tipp dort landet, wo der Finger war. */
+function cssScale(el: HTMLElement): number {
+  const w = el.offsetWidth;
+  if (!w) return 1;
+  return el.getBoundingClientRect().width / w || 1;
+}
+
 /** Bildschirmpunkt → Kartenkoordinate, Pan und Zoom herausgerechnet. */
 export function toMap(
   e: ReactPointerEvent<HTMLElement> | ReactMouseEvent<HTMLElement>,
   pan: Point,
   zoom: number,
 ): Point {
-  const box = e.currentTarget.getBoundingClientRect();
+  const el = e.currentTarget;
+  const box = el.getBoundingClientRect();
+  const k = cssScale(el);
   return {
-    x: Math.round((e.clientX - box.left - pan.x - ORIGIN_X * (1 - zoom)) / zoom),
-    y: Math.round((e.clientY - box.top - pan.y - ORIGIN_Y * (1 - zoom)) / zoom),
+    x: Math.round(((e.clientX - box.left) / k - pan.x - ORIGIN_X * (1 - zoom)) / zoom),
+    y: Math.round(((e.clientY - box.top) / k - pan.y - ORIGIN_Y * (1 - zoom)) / zoom),
   };
 }
 
@@ -47,7 +58,8 @@ export function usePan(pan: Point, apply: (p: Point) => void): PanHandle {
     move: (e) => {
       const d = drag.current;
       if (!d) return;
-      const dx = e.clientX - d.x, dy = e.clientY - d.y;
+      const k = cssScale(e.currentTarget);
+      const dx = (e.clientX - d.x) / k, dy = (e.clientY - d.y) / k;
       if (Math.abs(dx) + Math.abs(dy) > 4) d.moved = true;
       if (d.moved) apply({ x: d.pan.x + dx, y: d.pan.y + dy });
     },

@@ -102,3 +102,20 @@ input, select, textarea, button { font-family: Lora, Georgia, serif; }
 
 .scroll { overflow-y: auto; scrollbar-width: none; }
 .scroll::-webkit-scrollbar { display: none; }
+
+/* ── Präsentationsseite ─────────────────────────────────────────────────────
+   Der Geräterahmen ist feste 412 px breit — das ist das Format, für das der
+   Entwurf gemacht ist. Auf einem schmalen Display wird die Bühne deshalb
+   verkleinert, statt die Seite seitlich scrollen zu lassen. `zoom` skaliert
+   mit dem Layout; die Karte rechnet den Faktor beim Tippen wieder heraus
+   (siehe cssScale in lib/mapInteraction.ts). */
+.canvas { padding: 24px 40px 60px; }
+
+@media (max-width: 520px) {
+  .canvas { padding: 14px 10px 32px; }
+  .stage { zoom: 0.86; }
+}
+
+@media (max-width: 380px) {
+  .stage { zoom: 0.74; }
+}
