@@ -1,5 +1,6 @@
 // Packt den Vite-Build in eine einzelne HTML-Datei für die Artifact-Vorschau:
-// CSS und JS inline, das Logo als data:-URI.
+// CSS, JS, Schriften und Logo inline. Service Worker und Manifest fallen weg —
+// die gibt es in einer Einzeldatei nicht.
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -14,21 +15,28 @@ if (!jsName || !cssName) throw new Error('Build-Assets nicht gefunden: ' + asset
 const css = readFileSync(join(DIST, 'assets', cssName), 'utf8');
 let js = readFileSync(join(DIST, 'assets', jsName), 'utf8');
 
-const logo = readFileSync('public/revierpilot-logo.png').toString('base64');
-const logoUri = 'data:image/png;base64,' + logo;
+const dataUri = (path, mime) =>
+  `data:${mime};base64,` + readFileSync(path).toString('base64');
 
-const before = js.length;
-js = js.split('./revierpilot-logo.png').join(logoUri);
-if (js.length === before) throw new Error('Logo-Referenz im Bundle nicht gefunden');
+// Schriften einbetten, damit die Vorschau auch ohne Netz richtig setzt.
+let fonts = readFileSync(join(DIST, 'fonts.css'), 'utf8');
+let eingebettet = 0;
+fonts = fonts.replace(/url\(\.\/fonts\/([^)]+)\)/g, (_, file) => {
+  eingebettet++;
+  return `url(${dataUri(join(DIST, 'fonts', file), 'font/woff2')})`;
+});
+
+const logo = dataUri(join(DIST, 'revierpilot-logo.png'), 'image/png');
+const vorher = js.length;
+js = js.split('./revierpilot-logo.png').join(logo);
+if (js.length === vorher) throw new Error('Logo-Referenz im Bundle nicht gefunden');
 
 // Ein "</script>" in einer Zeichenkette würde den Inline-Block beenden.
 js = js.split('</script').join('<\\/script');
 
 const html = `<title>Revierpilot</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap">
 <style>
+${fonts}
 ${css}
 </style>
 <div id="root"></div>
@@ -38,4 +46,4 @@ ${js}
 `;
 
 writeFileSync(OUT, html);
-console.log(`${OUT}  ${(html.length / 1024 / 1024).toFixed(2)} MB`);
+console.log(`${OUT}  ${(html.length / 1024 / 1024).toFixed(2)} MB, ${eingebettet} Schriftschnitte eingebettet`);

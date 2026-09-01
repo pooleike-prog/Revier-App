@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useApp, typeDef } from '../state/store';
 import { ICON } from '../data/constants';
 import { DOWNLOADS } from '../data/seed';
@@ -38,7 +39,8 @@ const SIGN_OPTIONS: Array<{ id: SignMode; title: string; desc: string }> = [
 const SAMPLES: MarkerType[] = ['ansitz', 'kirrung', 'erleg'];
 
 export function MehrScreen() {
-  const { state: s, set, flash } = useApp();
+  const { state: s, set, flash, resetData } = useApp();
+  const [confirmReset, setConfirmReset] = useState(false);
 
   return (
     <div className="scroll" style={{ flex: 1 }}>
@@ -98,6 +100,44 @@ export function MehrScreen() {
             Nur Rottöne, gedimmt — schont die Nachtsicht auf dem Ansitz.
           </div>
         </button>
+      </div>
+
+      <div style={divider} />
+      <div style={sectionLabel}>Daten</div>
+      <div style={sectionBody}>
+        <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--muted)' }}>
+          Reviere, Marker, Flächen und Tagebuch liegen verschlüsselbar auf dem Gerät und überstehen
+          das Schließen der App. Nichts davon verlässt das Telefon.
+        </div>
+        <button onClick={() => setConfirmReset(true)} style={block(false)}>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>Demo-Daten wiederherstellen</div>
+          <div style={{ fontSize: 12, lineHeight: 1.4, color: 'var(--muted)' }}>
+            Verwirft alles Erfasste und setzt auf das Demo-Revier Eichenkamp zurück.
+          </div>
+        </button>
+        {confirmReset && (
+          <div style={{ border: '2px solid var(--accent)', padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+              Wirklich alles verwerfen? Eigene Reviere, Marker und Tagebucheinträge sind danach weg.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => { setConfirmReset(false); resetData(); }}
+                style={{
+                  flex: 1, minHeight: 48, border: '2px solid var(--accent)', background: 'var(--accent)',
+                  color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                }}
+              >Ja, zurücksetzen</button>
+              <button
+                onClick={() => setConfirmReset(false)}
+                style={{
+                  minHeight: 48, border: '2px solid var(--line)', background: 'transparent',
+                  color: 'var(--ink)', fontSize: 14, padding: '0 16px', cursor: 'pointer',
+                }}
+              >Abbrechen</button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={divider} />

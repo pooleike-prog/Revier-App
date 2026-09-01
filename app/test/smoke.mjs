@@ -27,8 +27,13 @@ const navBtn = (label) => nav.locator(`button:has(span:text-is("${label}"))`);
 const app = page.locator('.app');
 const headerTitle = app.locator('> div').first().locator('.serif').first();
 
+async function closeAnySheet() {
+  const schliessen = page.getByRole('button', { name: 'Schließen' });
+  if (await schliessen.count()) await schliessen.click().catch(() => {});
+}
+
 async function check(name, fn) {
-  try { await fn(); notes.push('ok   ' + name); }
+  try { await closeAnySheet(); await fn(); notes.push('ok   ' + name); }
   catch (e) { notes.push('FAIL ' + name + ' — ' + e.message); errors.push(name + ': ' + e.message); }
 }
 
@@ -166,6 +171,51 @@ await check('Zielkreuz-Variante zeigt den FAB', async () => {
   await page.getByText('Salzlecke', { exact: true }).first().click();
   await page.getByText('Hier setzen').waitFor({ timeout: 2000 });
   await page.getByRole('button', { name: 'Abbrechen' }).click();
+});
+
+
+await check('Erfasstes überlebt einen Neustart', async () => {
+  // Der vorige Test hat auf Zielkreuz gestellt — für die Werkzeugleiste zurück.
+  await navBtn('Mehr').click();
+  await page.getByText('Variante A · Werkzeugleiste').click();
+  await navBtn('Karte').click();
+  await page.locator('button:has-text("Kirrung")').last().click();
+  // Freie Stelle: Kartenpunkt (60, 350) liegt auf keinem Schlag und keinem Pin.
+  const box = await app.locator('div[style*="cursor:crosshair"], div[style*="cursor: crosshair"]').first().boundingBox();
+  await page.mouse.click(box.x + 66, box.y + 390);
+  await page.getByText(/Luderplatz gesetzt/).waitFor({ timeout: 3000 });
+  const name = await page.locator('input').first().inputValue();
+  await page.getByRole('button', { name: 'Schließen' }).click();
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.locator('.app').waitFor({ timeout: 5000 });
+  await page.getByRole('button', { name: 'i', exact: true }).click();
+  const zeile = await page.getByText(/\d+ auf der Karte/).nth(3).textContent();
+  await page.getByRole('button', { name: 'Schließen' }).click();
+  if (!/[2-9]\d* auf der Karte/.test(zeile)) throw new Error('Kirrung nach Neustart weg: ' + zeile);
+  notes.push('     nach Neustart noch da: ' + name + ' (' + zeile.trim() + ')');
+});
+
+await check('Zurücksetzen stellt die Demo-Daten wieder her', async () => {
+  await navBtn('Mehr').click();
+  await page.getByText('Demo-Daten wiederherstellen').click();
+  await page.getByText('Ja, zurücksetzen').click();
+  await navBtn('Karte').click();
+  await page.getByRole('button', { name: 'i', exact: true }).click();
+  const zeile = await page.getByText(/\d+ auf der Karte/).nth(3).textContent();
+  await page.getByRole('button', { name: 'Schließen' }).click();
+  if (!/^1 auf der Karte/.test(zeile.trim())) throw new Error('nicht zurückgesetzt: ' + zeile);
+});
+
+await check('Als App: Vollbild ohne Geräterahmen', async () => {
+  const p2 = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await p2.goto(URL + '?app');
+  await p2.locator('.app').waitFor({ timeout: 5000 });
+  if (await p2.getByText('Prototyp 02').count() > 0) throw new Error('Entwurfsseite ist noch da');
+  const b = await p2.locator('.app').boundingBox();
+  if (b.width < 380 || b.height < 800) throw new Error(`App füllt nicht: ${b.width}x${b.height}`);
+  notes.push(`     Vollbild ${Math.round(b.width)}x${Math.round(b.height)} auf 390x844`);
+  await p2.close();
 });
 
 await browser.close();

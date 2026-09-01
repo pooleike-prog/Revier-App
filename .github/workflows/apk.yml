@@ -1,0 +1,83 @@
+name: APK bauen
+
+# Baut bei jedem Push auf main ein installierbares Android-Paket. Das fertige
+# APK hängt unten am Lauf ("Artifacts") und lässt sich von dort herunterladen.
+# Ein Tag wie v0.3.0 legt zusätzlich ein Release mit dem APK an.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # Capacitor 6 nutzt das Android-Gradle-Plugin 8.2.1 — das läuft auf
+      # JDK 17, nicht auf 21.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - run: npm ci
+
+      - name: Typen und Web-Build prüfen
+        run: npm run build
+
+      - name: Web-Build ins Android-Projekt übernehmen
+        run: npx cap sync android
+
+      - name: APK bauen
+        working-directory: app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Benennen
+        id: apk
+        run: |
+          mkdir -p ../out
+          cp android/app/build/outputs/apk/debug/app-debug.apk \
+             "../out/revierpilot-${GITHUB_REF_NAME//\//-}-${GITHUB_SHA::7}.apk"
+          echo "pfad=out/$(ls ../out)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: revierpilot-apk
+          path: out/*.apk
+          if-no-files-found: error
+          retention-days: 90
+
+      # Bei einem Tag zusätzlich ein Release mit fester Download-Adresse.
+      - name: Release anlegen
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: out/*.apk
+          body: |
+            Installierbares Android-Paket (Debug-Signatur — zum Seitwärtsinstallieren,
+            nicht für den Play Store).
+
+            Installation: APK auf dem Telefon öffnen und die Installation aus
+            unbekannter Quelle für den Dateimanager bzw. Browser einmalig erlauben.

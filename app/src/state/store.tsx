@@ -4,6 +4,7 @@ import type { AppState, MarkerType, Marker } from '../types';
 import { initialState } from '../data/seed';
 import { TYPES } from '../data/constants';
 import { gps } from '../lib/geo';
+import { load, save, clear } from './persist';
 
 type Patch = Partial<AppState> | ((s: AppState) => Partial<AppState>);
 
@@ -14,6 +15,8 @@ interface Store {
   /** Shows a toast for a few seconds; `id` marks the marker RÜCKGÄNGIG removes. */
   flash: (msg: string, id?: number | null) => void;
   addMarker: (typeId: MarkerType, x: number, y: number) => void;
+  /** Verwirft den gespeicherten Stand und stellt die Demo-Daten wieder her. */
+  resetData: () => void;
 }
 
 const AppContext = createContext<Store | null>(null);
@@ -23,10 +26,33 @@ export function typeDef(id: MarkerType) {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>(initialState);
+  // Gespeicherten Stand übernehmen, sonst mit dem Demo-Revier starten.
+  const [state, setState] = useState<AppState>(() => ({ ...initialState, ...load() }));
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+  }, []);
+
+  // Gebündelt sichern statt bei jedem Tastendruck.
+  useEffect(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => save(state), 400);
+  }, [state]);
+
+  // Beim Wegschalten der App sofort sichern — Android beendet sie im
+  // Hintergrund, ohne dass ein Timer noch feuert.
+  useEffect(() => {
+    const flush = () => { if (document.visibilityState === 'hidden') save(state); };
+    document.addEventListener('visibilitychange', flush);
+    window.addEventListener('pagehide', flush);
+    return () => {
+      document.removeEventListener('visibilitychange', flush);
+      window.removeEventListener('pagehide', flush);
+    };
+  }, [state]);
 
   const set = useCallback((patch: Patch) => {
     setState(s => ({ ...s, ...(typeof patch === 'function' ? patch(s) : patch) }));
@@ -54,7 +80,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     flash(t.label + ' gesetzt · ' + gps(x, y), id);
   }, [flash]);
 
-  const value = useMemo<Store>(() => ({ state, set, flash, addMarker }), [state, set, flash, addMarker]);
+  const resetData = useCallback(() => {
+    clear();
+    setState(initialState);
+    flash('Demo-Daten wiederhergestellt');
+  }, [flash]);
+
+  const value = useMemo<Store>(
+    () => ({ state, set, flash, addMarker, resetData }),
+    [state, set, flash, addMarker, resetData],
+  );
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 

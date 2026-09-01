@@ -4,6 +4,9 @@ Implementierung des Claude-Design-Entwurfs `project/Revier App.dc.html` als
 React-App. Sechs Reiter: **Karte**, **Planung**, **Tagebuch**, **Zeiten**,
 **Ansitz**, **Mehr**.
 
+Läuft eigenständig: Erfasste Daten bleiben auf dem Gerät, Schriften und
+Kartenbild liegen im Paket, und ohne Empfang startet die App wie gewohnt.
+
 ```bash
 npm install
 npm run dev        # Entwicklung
@@ -11,6 +14,32 @@ npm run build      # Typecheck + Produktionsbuild nach dist/
 npm run preview    # gebautes Ergebnis auf :4173
 npm run smoke      # Rauchtest gegen den laufenden Preview (braucht playwright)
 ```
+
+## Als Android-App
+
+Das APK entsteht in GitHub Actions: Jeder Push auf `main` baut eines, es hängt
+am Lauf unter **Actions → APK bauen → Artifacts**. Ein Tag (`git tag v0.3.0 &&
+git push --tags`) legt zusätzlich ein Release mit fester Download-Adresse an.
+
+Auf dem Telefon installieren: APK öffnen und die Installation aus unbekannter
+Quelle für den Dateimanager einmalig erlauben. Die Pakete sind debug-signiert —
+zum Seitwärtsinstallieren gedacht, nicht für den Play Store (dafür bräuchte es
+einen eigenen Schlüssel, ein Entwicklerkonto und eine Datenschutzerklärung).
+
+Selbst bauen, mit Android-SDK und JDK 17:
+
+```bash
+npm run android:apk    # Build + Sync + Gradle, APK unter android/app/build/outputs/apk/debug/
+```
+
+`npm run icons` erzeugt Launcher-Icons und Startbildschirme neu, `npm run
+fonts` holt die Schriften — beides nur nötig, wenn Logo oder Schriften wechseln.
+
+## Vollbild oder Geräterahmen
+
+Als installierte App füllt Revierpilot den Bildschirm. Im Browser sitzt sie im
+Android-Rahmen des Entwurfs, damit sich das Format beurteilen lässt. Zum
+Ausprobieren des Vollbilds im Browser: `?app` an die Adresse hängen.
 
 ## Aufbau
 
@@ -55,6 +84,16 @@ src/
   aus den Pfeilen abgeleitete Treibrichtung.
 - **Jagdzeiten-Status** — JAGDZEIT / SCHONZEIT / GESCHÜTZT gegen den Stichtag,
   auch über den Jahreswechsel hinweg.
+
+**Eigenständig:**
+
+- **Gespeichert wird lokal** (`state/persist.ts`): Reviere, Marker, Flächen,
+  Tagebuch, Jagdplanung und Einstellungen überstehen das Schließen. Nichts
+  verlässt das Gerät. *Mehr → Daten* stellt die Demo-Daten wieder her.
+- **Schriften im Paket** (`public/fonts/`) statt von Google — sonst stünde die
+  App im Revier ohne Empfang in Georgia.
+- **Offline startklar**: Service Worker legt die 45 Dateien der App auf dem
+  Gerät ab; als APK sind sie ohnehin mit installiert.
 
 **Demo-Stand:**
 

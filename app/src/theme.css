@@ -103,6 +103,14 @@ input, select, textarea, button { font-family: Lora, Georgia, serif; }
 .scroll { overflow-y: auto; scrollbar-width: none; }
 .scroll::-webkit-scrollbar { display: none; }
 
+/* Als installierte App: kein Mitwippen der Seite, kein Überscrollen —
+   die Karte soll sich bewegen, nicht das Dokument darunter. */
+html.standalone, html.standalone body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 /* ── Präsentationsseite ─────────────────────────────────────────────────────
    Der Geräterahmen ist feste 412 px breit — das ist das Format, für das der
    Entwurf gemacht ist. Auf einem schmalen Display wird die Bühne deshalb

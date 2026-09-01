@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { AppProvider, useApp } from './state/store';
+import { isStandalone, setThemeColor } from './lib/platform';
 import { DEVICE_H, DEVICE_W } from './data/constants';
 import { BUECHSENLICHT } from './data/settings';
 import type { CtrlMode, Screen } from './types';
@@ -21,9 +22,21 @@ import { SheetHost } from './sheets/SheetHost';
 export default function App() {
   return (
     <AppProvider>
-      <Canvas />
+      <Shell />
     </AppProvider>
   );
+}
+
+/** Als installierte App füllt Revierpilot den Bildschirm. Im Browser sitzt sie
+ *  im Geräterahmen der Entwurfsseite, damit man das Format beurteilen kann. */
+function Shell() {
+  const standalone = useMemo(isStandalone, []);
+
+  useEffect(() => {
+    if (standalone) document.documentElement.classList.add('standalone');
+  }, [standalone]);
+
+  return standalone ? <AppFrame fullscreen /> : <Canvas />;
 }
 
 /** Die Präsentationsseite um das Gerät herum — Titel, Beschreibung und der
@@ -95,9 +108,12 @@ function Canvas() {
   );
 }
 
-function AppFrame() {
+function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
   const { state: s, set } = useApp();
   const light = useMemo(() => computeLight(s.dayOff, BUECHSENLICHT), [s.dayOff]);
+
+  // Systemleisten mitfärben, damit der Rotlichtmodus nicht am Rand aufhört.
+  useEffect(() => { setThemeColor(s.night); }, [s.night]);
 
   const act = activeRevier(s);
   const jagd = currentJagd(s);
@@ -130,8 +146,17 @@ function AppFrame() {
       data-night={s.night ? '1' : '0'}
       data-mapstyle={s.mapStyle}
       style={{
-        position: 'relative', height: '100%', display: 'flex', flexDirection: 'column',
+        display: 'flex', flexDirection: 'column',
         background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'Lora, Georgia, serif', overflow: 'hidden',
+        // Im Vollbild bis an die Ränder, aber nicht unter Kamera-Ausschnitt
+        // und Gestenleiste.
+        ...(fullscreen
+          ? {
+              position: 'fixed' as const, inset: 0,
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }
+          : { position: 'relative' as const, height: '100%' }),
       }}
     >
       <Header
