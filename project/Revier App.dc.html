@@ -1,0 +1,2185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/classical-c0dbfda3-d7f8-40c9-b424-1f75158f6597/styles.css">
+<script src="_ds/classical-c0dbfda3-d7f8-40c9-b424-1f75158f6597/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #e6e1d2; font-family: Lora, Georgia, serif; }
+  a { color: #3c4a35; } a:hover { color: #26301f; }
+  * { -webkit-tap-highlight-color: transparent; }
+  input, select, textarea, button { font-family: Lora, Georgia, serif; }
+  ::selection { background: #3c4a3526; }
+  .serif { font-family: 'Cormorant Garamond', Cormorant, Georgia, serif; }
+  .app {
+    --bg:#f2eee2; --ink:#26301f; --accent:#3c4a35; --gold:#a8863c; --loden:#3c4a35;
+    --surf:#faf7ee; --line:#2f3a28;
+    --rule:#d3ceba; --muted:#66705c; --chip:#e3e0cf;
+    --m-grass:#e2e3c5; --m-forest:#7e8a4e; --m-field:#e7dcb4; --m-water:#b0c3c3;
+    --m-road:#f8f4e8; --m-stroke:#8d9268; --m-label:#3a4426;
+  }
+  .app[data-mapstyle="sat"] {
+    --m-grass:#39432c; --m-forest:#1e2717; --m-field:#585233; --m-water:#1b2830;
+    --m-road:#8a8069; --m-stroke:#6a6350; --m-label:#f1ebdd;
+  }
+  .app[data-night="1"] {
+    --bg:#0b0908; --ink:#ff7355; --accent:#c2452a; --gold:#ff8a4a; --loden:#2a1a11; --surf:#161211; --line:#6b2817;
+    --rule:#3a1a11; --muted:#c2503a; --chip:#231512;
+    --m-grass:#1b0c08; --m-forest:#120705; --m-field:#25100a; --m-water:#0f0605;
+    --m-road:#6b2817; --m-stroke:#4a1b10; --m-label:#ff7355;
+  }
+  .scroll { overflow-y: auto; scrollbar-width: none; }
+  .scroll::-webkit-scrollbar { display: none; }
+</style>
+</helmet>
+
+<div style="min-height:100vh;padding:24px 40px 60px;display:flex;flex-direction:column;align-items:center;gap:18px">
+
+  <div style="width:100%;max-width:900px;display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+      <span style="font-size:13px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#3c4a35">Prototyp 02</span>
+      <span style="font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:#66705c">Revierkarte · Jagdplanung · Tagebuch · Jagdzeiten</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div role="img" aria-label="Revierpilot" style="width:74px;height:74px;flex:none;background-image:url(assets/revierpilot-logo.png);background-size:256% auto;background-position:51% 38%;background-repeat:no-repeat"></div>
+      <h1 class="serif" style="margin:0;font-size:38px;font-weight:500;letter-spacing:-.01em;color:#26301f;line-height:1.05">Revierpilot</h1>
+    </div>
+    <div style="height:1px;background:#2f3a28"></div>
+    <p style="margin:0;max-width:62ch;font-size:15px;line-height:1.55;color:#4b5344;text-wrap:pretty">Neu: Reiter <b>Planung</b> mit Vorstehschützen, Treibrichtungs-Pfeilen, Flächenteilung und wählbaren Kartenausschnitten — für Treibjagd und Drückjagd. Marker tragen jetzt Symbole; in <b>Mehr → Kartenzeichen</b> auf Buchstaben umschaltbar. Jagdzeiten sind nach Schalenwild, Haarwild, Raubwild und Federwild gegliedert.</p>
+  </div>
+
+  <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" width="{{ devW }}" height="{{ devH }}" dark="{{ night }}" hint-size="412px,892px">
+    <div class="app" data-night="{{ nightAttr }}" data-mapstyle="{{ mapStyle }}" style="position:relative;height:100%;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font-family:Lora, Georgia, serif;overflow:hidden">
+
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--surf);border-bottom:2px solid var(--line);flex:none">
+        <div style="width:28px;height:28px;flex:none;background-image:url(assets/revierpilot-logo.png);background-size:256% auto;background-position:51% 38%;background-repeat:no-repeat"></div>
+        <div style="flex:1;min-width:0">
+          <div class="serif" style="font-size:19px;font-weight:600;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ headerTitle }}</div>
+          <div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">{{ headerSub }}</div>
+        </div>
+        <button onClick="{{ toggleNight }}" style="width:46px;height:46px;flex:none;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:11px;font-weight:600;letter-spacing:.06em;cursor:pointer;display:flex;align-items:center;justify-content:center">{{ nightLabel }}</button>
+      </div>
+
+      <sc-if value="{{ isKarte }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;position:relative;overflow:hidden;background:var(--m-grass)">
+
+        <div onPointerDown="{{ onPanStart }}" onPointerMove="{{ onPanMove }}" onPointerUp="{{ onPanEnd }}" onClick="{{ onMapClick }}" style="position:absolute;inset:0;touch-action:none;cursor:crosshair">
+          <div style="{{ mapWrapStyle }}">
+            <svg width="400" height="520" viewBox="0 0 400 520" style="display:block;position:absolute;left:0;top:0">
+              <rect x="-400" y="-520" width="1200" height="1560" fill="var(--m-grass)"></rect>
+              <g stroke="var(--m-stroke)" stroke-width="0.5" fill="none" opacity="0.55">
+                <path d="M-40 120 C 60 90 140 150 240 110 S 380 60 460 100"></path>
+                <path d="M-40 160 C 70 130 150 190 250 150 S 390 100 460 140"></path>
+                <path d="M-40 210 C 80 180 160 240 260 200 S 400 150 460 190"></path>
+                <path d="M-40 300 C 90 275 170 330 270 295 S 400 250 460 285"></path>
+                <path d="M-40 380 C 90 355 170 410 270 375 S 400 330 460 365"></path>
+              </g>
+              <polygon points="30,45 175,20 190,105 105,155 20,150" fill="var(--m-forest)" stroke="var(--m-stroke)" stroke-width="1"></polygon>
+              <polygon points="255,55 350,80 355,175 265,150" fill="var(--m-forest)" stroke="var(--m-stroke)" stroke-width="1"></polygon>
+              <polygon points="60,300 150,330 140,415 45,395" fill="var(--m-forest)" stroke="var(--m-stroke)" stroke-width="1"></polygon>
+              <path d="M0 235 C 90 250 150 215 230 240 S 340 300 400 290" fill="none" stroke="var(--m-water)" stroke-width="5"></path>
+              <path d="M20 470 C 120 400 200 420 280 330 S 360 200 400 150" fill="none" stroke="var(--m-road)" stroke-width="7"></path>
+              <path d="M20 470 C 120 400 200 420 280 330 S 360 200 400 150" fill="none" stroke="var(--m-stroke)" stroke-width="0.75" stroke-dasharray="1 6"></path>
+
+              <sc-for list="{{ fields }}" as="f" hint-placeholder-count="4">
+                <polygon points="{{ f.points }}" fill="var(--m-field)" stroke="{{ f.stroke }}" stroke-width="{{ f.sw }}" onClick="{{ f.onClick }}" style="cursor:pointer"></polygon>
+              </sc-for>
+
+              <sc-for list="{{ reviere }}" as="r" hint-placeholder-count="2">
+                <polygon points="{{ r.points }}" fill="none" stroke="{{ r.stroke }}" stroke-width="{{ r.sw }}" stroke-dasharray="{{ r.dash }}"></polygon>
+              </sc-for>
+
+              <sc-if value="{{ isDrawing }}" hint-placeholder-val="{{ false }}">
+                <polyline points="{{ drawPoints }}" fill="rgba(111,90,35,0.12)" stroke="var(--accent)" stroke-width="2"></polyline>
+              </sc-if>
+            </svg>
+
+            <sc-for list="{{ fieldLabels }}" as="l" hint-placeholder-count="4">
+              <div style="{{ l.st }}">{{ l.text }}</div>
+            </sc-for>
+
+            <sc-for list="{{ drawVertices }}" as="v" hint-placeholder-count="0">
+              <div style="{{ v.st }}"></div>
+            </sc-for>
+
+            <sc-for list="{{ rings }}" as="r" hint-placeholder-count="0">
+              <div style="{{ r.st }}"></div>
+            </sc-for>
+            <sc-for list="{{ ringLabels }}" as="r" hint-placeholder-count="0">
+              <div style="{{ r.st }}">{{ r.label }}</div>
+            </sc-for>
+
+            <sc-if value="{{ isMeasuring }}" hint-placeholder-val="{{ false }}">
+              <svg width="400" height="520" viewBox="0 0 400 520" style="display:block;position:absolute;left:0;top:0;pointer-events:none;z-index:5">
+                <line x1="{{ measX1 }}" y1="{{ measY1 }}" x2="{{ measX2 }}" y2="{{ measY2 }}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke"></line>
+              </svg>
+              <div style="{{ measDotSt }}"></div>
+              <div style="{{ measBadgeSt }}">{{ measBadge }}</div>
+            </sc-if>
+
+            <sc-for list="{{ ringDots }}" as="p" hint-placeholder-count="0">
+              <div onClick="{{ p.onClick }}" style="{{ p.st }}">
+                <div style="{{ p.inner }}"></div>
+              </div>
+            </sc-for>
+
+            <sc-for list="{{ pins }}" as="p" hint-placeholder-count="8">
+              <div onClick="{{ p.onClick }}" style="{{ p.st }}">
+                <sc-if value="{{ p.useSym }}" hint-placeholder-val="{{ true }}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="{{ p.d }}"></path>
+                  </svg>
+                </sc-if>
+                <sc-if value="{{ p.useCode }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size:14px;font-weight:600;line-height:1">{{ p.code }}</span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="position:absolute;top:12px;left:12px;display:flex;background:var(--surf);border:2px solid var(--line)">
+          <button onClick="{{ setTopo }}" style="{{ topoBtn }}">Topografie</button>
+          <button onClick="{{ setSat }}" style="{{ satBtn }}">Satellit</button>
+        </div>
+
+        <div style="position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:8px">
+          <button onClick="{{ openReviere }}" style="width:48px;height:48px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font-size:11px;font-weight:600;letter-spacing:.04em;cursor:pointer">REV</button>
+          <button onClick="{{ openLegend }}" style="width:48px;height:48px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font-size:11px;font-weight:600;letter-spacing:.04em;cursor:pointer">i</button>
+          <button onClick="{{ zoomIn }}" style="width:48px;height:48px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font-size:22px;font-weight:500;line-height:1;cursor:pointer">+</button>
+          <button onClick="{{ zoomOut }}" style="width:48px;height:48px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font-size:22px;font-weight:500;line-height:1;cursor:pointer">−</button>
+        </div>
+
+        <div style="position:absolute;left:12px;top:66px;background:var(--surf);border:2px solid var(--line);padding:5px 9px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)">{{ mapMeta }}</div>
+
+        <sc-if value="{{ isDrawing }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:0;right:0;bottom:0;background:var(--surf);border-top:2px solid var(--accent);padding:14px">
+            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">Reviergrenze zeichnen</div>
+            <div style="font-size:14px;line-height:1.4;margin-bottom:12px">{{ drawHint }}</div>
+            <div style="display:flex;gap:8px">
+              <button onClick="{{ finishDraw }}" style="flex:1;min-height:50px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:14px;font-weight:600;text-align:left;padding:0 14px;cursor:pointer">Fläche schließen</button>
+              <button onClick="{{ undoVertex }}" style="min-height:50px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:14px;padding:0 14px;cursor:pointer">Zurück</button>
+              <button onClick="{{ cancelDraw }}" style="min-height:50px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:14px;padding:0 14px;cursor:pointer">Abbr.</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showToolbar }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;left:0;right:0;bottom:0;background:var(--surf);border-top:2px solid var(--line)">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 4px">
+              <span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ toolHint }}</span>
+              <div style="display:flex;gap:6px;flex:none">
+                <button onClick="{{ measToggle }}" style="{{ measBtnSt }}">MESSEN</button>
+                <button onClick="{{ startDraw }}" style="border:2px solid var(--line);background:transparent;color:var(--ink);font-size:11px;font-weight:600;letter-spacing:.06em;padding:8px 10px;cursor:pointer">GRENZE</button>
+              </div>
+            </div>
+            <div class="scroll" style="display:flex;gap:8px;padding:8px 12px 14px;overflow-x:auto">
+              <sc-for list="{{ tools }}" as="t" hint-placeholder-count="7">
+                <button onClick="{{ t.onClick }}" style="{{ t.st }}">
+                  <sc-if value="{{ t.useSym }}" hint-placeholder-val="{{ true }}">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="{{ t.d }}"></path>
+                    </svg>
+                  </sc-if>
+                  <sc-if value="{{ t.useCode }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size:17px;font-weight:600;line-height:1">{{ t.code }}</span>
+                  </sc-if>
+                  <span style="font-size:10px;letter-spacing:.04em;line-height:1.1;white-space:nowrap">{{ t.short }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showFab }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;right:16px;bottom:20px;display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+            <sc-for list="{{ radialTools }}" as="t" hint-placeholder-count="0">
+              <button onClick="{{ t.onClick }}" style="{{ t.st }}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="{{ t.d }}"></path>
+                </svg>
+                <span style="font-size:13px;letter-spacing:.02em;white-space:nowrap">{{ t.short }}</span>
+              </button>
+            </sc-for>
+            <button onClick="{{ toggleRadial }}" style="{{ fabStyle }}">{{ fabLabel }}</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isAiming }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center">
+            <svg width="88" height="88" viewBox="0 0 88 88">
+              <circle cx="44" cy="44" r="26" fill="none" stroke="var(--accent)" stroke-width="2"></circle>
+              <path d="M44 4v26M44 58v26M4 44h26M58 44h26" stroke="var(--accent)" stroke-width="2"></path>
+              <circle cx="44" cy="44" r="3" fill="var(--accent)"></circle>
+            </svg>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;background:var(--surf);border-top:2px solid var(--accent);padding:14px">
+            <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px">{{ aimType }}</div>
+            <div style="font-size:14px;line-height:1.4;margin-bottom:12px">Karte unter dem Kreuz verschieben — GPS-Position mit Handschuh nicht antippbar, deshalb Zielkreuz.</div>
+            <div style="display:flex;gap:8px">
+              <button onClick="{{ placeAtCenter }}" style="flex:1;min-height:52px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:15px;font-weight:600;text-align:left;padding:0 14px;cursor:pointer">Hier setzen</button>
+              <button onClick="{{ cancelAim }}" style="min-height:52px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:14px;padding:0 16px;cursor:pointer">Abbrechen</button>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:12px;right:12px;bottom:170px;background:var(--ink);color:var(--bg);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+            <span style="font-size:13px">{{ toast }}</span>
+            <button onClick="{{ undoLast }}" style="border:2px solid var(--bg);background:transparent;color:var(--bg);font-size:11px;font-weight:600;letter-spacing:.08em;padding:7px 10px;cursor:pointer">RÜCKGÄNGIG</button>
+          </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isPlanung }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+
+        <div class="scroll" style="display:flex;gap:8px;padding:10px 12px;overflow-x:auto;background:var(--surf);border-bottom:2px solid var(--line);flex:none">
+          <sc-for list="{{ jagdChips }}" as="j" hint-placeholder-count="2">
+            <button onClick="{{ j.onClick }}" style="{{ j.st }}">
+              <span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.75">{{ j.art }}</span>
+              <span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap">{{ j.datum }}</span>
+            </button>
+          </sc-for>
+          <button onClick="{{ newJagd }}" style="min-width:56px;min-height:52px;flex:none;border:2px dashed var(--line);background:transparent;color:var(--ink);font-size:20px;cursor:pointer">+</button>
+        </div>
+
+        <div style="flex:1;position:relative;overflow:hidden;background:var(--m-grass)">
+          <div onPointerDown="{{ onPPanStart }}" onPointerMove="{{ onPPanMove }}" onPointerUp="{{ onPPanEnd }}" onClick="{{ onPMapClick }}" style="position:absolute;inset:0;touch-action:none;cursor:crosshair">
+            <div style="{{ pMapWrapStyle }}">
+              <svg width="400" height="520" viewBox="0 0 400 520" style="display:block;position:absolute;left:0;top:0">
+                <rect x="-400" y="-520" width="1200" height="1560" fill="var(--m-grass)"></rect>
+                <polygon points="30,45 175,20 190,105 105,155 20,150" fill="var(--m-forest)" stroke="var(--m-stroke)" stroke-width="1"></polygon>
+                <polygon points="255,55 350,80 355,175 265,150" fill="var(--m-forest)" stroke="var(--m-stroke)" stroke-width="1"></polygon>
+                <polygon points="60,300 150,330 140,415 45,395" fill="var(--m-forest)" stroke="var(--m-stroke)" stroke-width="1"></polygon>
+                <path d="M0 235 C 90 250 150 215 230 240 S 340 300 400 290" fill="none" stroke="var(--m-water)" stroke-width="5"></path>
+                <path d="M20 470 C 120 400 200 420 280 330 S 360 200 400 150" fill="none" stroke="var(--m-road)" stroke-width="7"></path>
+
+                <sc-for list="{{ pFields }}" as="f" hint-placeholder-count="4">
+                  <polygon points="{{ f.points }}" fill="{{ f.fill }}" stroke="{{ f.stroke }}" stroke-width="{{ f.sw }}" stroke-dasharray="{{ f.dash }}" onClick="{{ f.onClick }}" style="cursor:pointer"></polygon>
+                </sc-for>
+
+                <sc-for list="{{ reviere }}" as="r" hint-placeholder-count="2">
+                  <polygon points="{{ r.points }}" fill="none" stroke="{{ r.stroke }}" stroke-width="1.5" stroke-dasharray="{{ r.dash }}" opacity="0.6"></polygon>
+                </sc-for>
+
+                <sc-for list="{{ pArrows }}" as="a" hint-placeholder-count="3">
+                  <g opacity="{{ a.op }}">
+                    <path d="{{ a.line }}" stroke="{{ a.col }}" stroke-width="{{ a.w }}" fill="none" stroke-linecap="round"></path>
+                    <polygon points="{{ a.head }}" fill="{{ a.col }}"></polygon>
+                  </g>
+                </sc-for>
+
+                <sc-for list="{{ pExtentBoxes }}" as="b" hint-placeholder-count="0">
+                  <rect x="{{ b.x }}" y="{{ b.y }}" width="{{ b.w }}" height="{{ b.h }}" fill="none" stroke="{{ b.col }}" stroke-width="1.5" stroke-dasharray="6 5"></rect>
+                </sc-for>
+
+                <sc-if value="{{ pHasPending }}" hint-placeholder-val="{{ false }}">
+                  <circle cx="{{ pPendX }}" cy="{{ pPendY }}" r="6" fill="none" stroke="var(--accent)" stroke-width="2"></circle>
+                </sc-if>
+              </svg>
+
+              <sc-for list="{{ pBasePins }}" as="p" hint-placeholder-count="4">
+                <div style="{{ p.st }}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="{{ p.d }}"></path>
+                  </svg>
+                </div>
+              </sc-for>
+
+              <sc-for list="{{ pPosts }}" as="p" hint-placeholder-count="6">
+                <div onClick="{{ p.onClick }}" style="{{ p.st }}">{{ p.nr }}</div>
+              </sc-for>
+
+              <sc-for list="{{ pTreibenLabels }}" as="l" hint-placeholder-count="3">
+                <div style="{{ l.st }}">{{ l.text }}</div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div class="scroll" style="position:absolute;top:10px;left:10px;right:70px;display:flex;gap:6px;overflow-x:auto">
+            <sc-for list="{{ pViews }}" as="v" hint-placeholder-count="3">
+              <button onClick="{{ v.onClick }}" style="{{ v.st }}">{{ v.label }}</button>
+            </sc-for>
+          </div>
+
+          <div style="position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:8px">
+            <button onClick="{{ openListe }}" style="width:48px;height:48px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font-size:10px;font-weight:600;letter-spacing:.04em;cursor:pointer">LISTE</button>
+            <button onClick="{{ pZoomIn }}" style="width:48px;height:48px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font-size:22px;line-height:1;cursor:pointer">+</button>
+            <button onClick="{{ pZoomOut }}" style="width:48px;height:48px;border:2px solid var(--line);background:var(--surf);color:var(--ink);font-size:22px;line-height:1;cursor:pointer">−</button>
+          </div>
+
+          <div style="position:absolute;left:0;right:0;bottom:0;background:var(--surf);border-top:2px solid var(--line)">
+            <div style="display:flex;align-items:center;gap:8px;padding:8px 12px 2px">
+              <span style="flex:1;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:{{ pHintCol }};line-height:1.3">{{ pHint }}</span>
+              <sc-if value="{{ pCanCancel }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ pCancelTool }}" style="border:2px solid var(--line);background:transparent;color:var(--ink);font-size:10px;font-weight:600;letter-spacing:.08em;padding:7px 9px;cursor:pointer">ABBR.</button>
+              </sc-if>
+            </div>
+            <div class="scroll" style="display:flex;gap:6px;padding:6px 12px 4px;overflow-x:auto">
+              <sc-for list="{{ pTreibenChips }}" as="t" hint-placeholder-count="3">
+                <button onClick="{{ t.onClick }}" style="{{ t.st }}">{{ t.label }}</button>
+              </sc-for>
+              <button onClick="{{ addTreiben }}" style="min-width:44px;min-height:44px;flex:none;border:2px dashed var(--line);background:transparent;color:var(--ink);font-size:18px;cursor:pointer">+</button>
+            </div>
+            <div class="scroll" style="display:flex;gap:8px;padding:6px 12px 12px;overflow-x:auto">
+              <sc-for list="{{ pTools }}" as="t" hint-placeholder-count="4">
+                <button onClick="{{ t.onClick }}" style="{{ t.st }}">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="{{ t.d }}"></path>
+                  </svg>
+                  <span style="font-size:10px;letter-spacing:.04em;line-height:1.1;white-space:nowrap">{{ t.label }}</span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+
+          <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:12px;right:12px;bottom:196px;background:var(--ink);color:var(--bg);padding:12px 14px;font-size:13px">{{ toast }}</div>
+          </sc-if>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isTagebuch }}" hint-placeholder-val="{{ false }}">
+      <div class="scroll" style="flex:1">
+        <div class="scroll" style="display:flex;gap:8px;padding:12px;overflow-x:auto;border-bottom:2px solid var(--line);background:var(--surf)">
+          <sc-for list="{{ jfilters }}" as="f" hint-placeholder-count="4">
+            <button onClick="{{ f.onClick }}" style="{{ f.st }}">{{ f.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ journal }}" as="e" hint-placeholder-count="4">
+            <div style="padding:14px;border-bottom:1px solid var(--rule)">
+              <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+                <span style="{{ e.tagSt }}">{{ e.typ }}</span>
+                <span style="font-size:11px;letter-spacing:.08em;color:var(--muted);font-variant-numeric:tabular-nums">{{ e.when }}</span>
+              </div>
+              <div style="font-size:17px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px">{{ e.title }}</div>
+              <div style="font-size:13px;line-height:1.45;color:var(--muted)">{{ e.line }}</div>
+              <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+                <sc-for list="{{ e.chips }}" as="c" hint-placeholder-count="2">
+                  <span style="{{ c.st }}">{{ c.label }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <sc-if value="{{ showAds }}" hint-placeholder-val="{{ true }}">
+          <div style="margin:14px;border:1px dashed var(--line);background:var(--chip)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 10px 0;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">
+              <span>Anzeige</span><span>320 × 100</span>
+            </div>
+            <div style="height:78px;display:flex;align-items:center;justify-content:center;padding:0 14px;font-size:12px;line-height:1.4;text-align:center;color:var(--muted);text-wrap:pretty">Platzhalter — Werbeplatz nach der Eintragsliste. Ausgeliefert wird nur, was beim letzten Online-Sync geladen wurde.</div>
+          </div>
+        </sc-if>
+        <div style="padding:14px">
+          <button onClick="{{ openNewEntry }}" style="width:100%;min-height:56px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:16px;font-weight:600;text-align:left;padding:0 16px;cursor:pointer">Neuer Eintrag</button>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isZeiten }}" hint-placeholder-val="{{ false }}">
+      <div class="scroll" style="flex:1">
+        <div style="padding:14px;border-bottom:2px solid var(--line);background:var(--surf)">
+          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Niedersachsen · Stand Demo</div>
+          <div style="font-size:14px;line-height:1.45;color:var(--ink)">Heute {{ today }}. Kategorien nach jagdlicher Gliederung, Zeiten nach Bundes- und Landesverordnung. Elterntierschutz und behördliche Abweichungen sind noch nicht eingepflegt.</div>
+        </div>
+        <sc-for list="{{ zeitGroups }}" as="g" hint-placeholder-count="4">
+          <div>
+            <button onClick="{{ g.onClick }}" style="{{ g.headSt }}">
+              <div style="flex:1;text-align:left;min-width:0">
+                <div style="font-size:18px;font-weight:600;letter-spacing:-.01em">{{ g.name }}</div>
+                <div style="font-size:12px;color:var(--muted);letter-spacing:.02em">{{ g.meta }}</div>
+              </div>
+              <span style="font-size:13px;font-weight:600;letter-spacing:.08em;flex:none">{{ g.chev }}</span>
+            </button>
+            <sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}">
+              <sc-for list="{{ g.rows }}" as="z" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 14px 12px 22px;border-bottom:1px solid var(--rule)">
+                  <div style="flex:1;min-width:0">
+                    <div style="font-size:16px;font-weight:600;letter-spacing:-.01em">{{ z.art }}</div>
+                    <div style="font-size:12px;color:var(--muted);line-height:1.35">{{ z.klasse }}</div>
+                  </div>
+                  <div style="text-align:right;flex:none">
+                    <div style="font-size:13px;font-variant-numeric:tabular-nums">{{ z.range }}</div>
+                    <div style="{{ z.st }}">{{ z.status }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </sc-if>
+          </div>
+        </sc-for>
+        <sc-if value="{{ showAds }}" hint-placeholder-val="{{ true }}">
+          <div style="margin:14px;border:1px dashed var(--line);background:var(--chip)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 10px 0;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">
+              <span>Anzeige</span><span>320 × 100</span>
+            </div>
+            <div style="height:78px;display:flex;align-items:center;justify-content:center;padding:0 14px;font-size:12px;line-height:1.4;text-align:center;color:var(--muted);text-wrap:pretty">Platzhalter — Werbeplatz am Ende der Jagdzeiten-Tabelle.</div>
+          </div>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isAnsitz }}" hint-placeholder-val="{{ false }}">
+      <div class="scroll" style="flex:1">
+        <div style="padding:12px 14px 14px;border-bottom:2px solid var(--line);background:var(--surf);display:flex;flex-direction:column;gap:12px">
+
+          <div style="display:flex;align-items:center;gap:8px">
+            <button onClick="{{ dayPrev }}" style="width:44px;height:44px;flex:none;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:20px;line-height:1;cursor:pointer">‹</button>
+            <div style="flex:1;min-width:0;text-align:center">
+              <div class="serif" style="font-size:19px;font-weight:600;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ blDate }}</div>
+              <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)">{{ blPlace }}</div>
+            </div>
+            <button onClick="{{ dayNext }}" style="width:44px;height:44px;flex:none;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:20px;line-height:1;cursor:pointer">›</button>
+          </div>
+
+          <div style="display:flex;gap:10px">
+            <div style="flex:1;border:1px solid var(--line);padding:9px 10px 10px">
+              <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Büchsenlicht ab</div>
+              <div class="serif" style="font-size:29px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums">{{ blStart }}</div>
+              <div style="font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums">Sonnenaufgang {{ sunrise }}</div>
+            </div>
+            <div style="flex:1;border:1px solid var(--line);padding:9px 10px 10px">
+              <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Büchsenlicht bis</div>
+              <div class="serif" style="font-size:29px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums">{{ blEnd }}</div>
+              <div style="font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums">Sonnenuntergang {{ sunset }}</div>
+            </div>
+          </div>
+
+          <div>
+            <div style="position:relative;height:30px;border:1px solid var(--line);overflow:hidden">
+              <sc-for list="{{ blBands }}" as="b" hint-placeholder-count="5">
+                <div style="{{ b.st }}"></div>
+              </sc-for>
+              <sc-for list="{{ blMoonBands }}" as="b" hint-placeholder-count="1">
+                <div style="{{ b.st }}"></div>
+              </sc-for>
+              <sc-if value="{{ blShowNow }}" hint-placeholder-val="{{ false }}">
+                <div style="{{ blNowSt }}"></div>
+              </sc-if>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:9px;letter-spacing:.08em;color:var(--muted);font-variant-numeric:tabular-nums">
+              <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:10px;letter-spacing:.04em;color:var(--muted)">
+              <sc-for list="{{ blLegend }}" as="l" hint-placeholder-count="3">
+                <span style="display:inline-flex;align-items:center;gap:5px"><i style="{{ l.sw }}"></i>{{ l.label }}</span>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;border-top:1px solid var(--rule);padding-top:10px">
+            <div>
+              <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Mond</div>
+              <div style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">{{ moonLit }}</div>
+              <div style="font-size:10px;color:var(--muted)">{{ moonPhase }}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Mond auf</div>
+              <div style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">{{ moonRise }}</div>
+              <div style="font-size:10px;color:var(--muted)">{{ moonHigh }}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Mond unter</div>
+              <div style="font-size:20px;font-weight:600;font-variant-numeric:tabular-nums">{{ moonSet }}</div>
+              <div style="font-size:10px;color:var(--muted)">{{ moonAge }}</div>
+            </div>
+          </div>
+
+          <div style="border-left:2px solid var(--gold);padding:2px 0 2px 10px;font-size:12px;line-height:1.5">{{ moonVerdict }}</div>
+
+          <div style="display:flex;gap:18px;flex-wrap:wrap;border-top:1px solid var(--rule);padding-top:10px">
+            <div>
+              <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Nachtjagd gesperrt</div>
+              <div style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums">{{ nightBan }}</div>
+            </div>
+            <div>
+              <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Wind</div>
+              <div style="font-size:13px;font-weight:600">SW 12 km/h</div>
+            </div>
+            <div>
+              <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Temp</div>
+              <div style="font-size:13px;font-weight:600">14° trocken</div>
+            </div>
+          </div>
+
+          <div style="font-size:11px;line-height:1.5;color:var(--muted)">{{ blRule }}</div>
+        </div>
+        <sc-for list="{{ ansitze }}" as="a" hint-placeholder-count="4">
+          <div style="padding:14px;border-bottom:1px solid var(--rule)">
+            <div style="display:flex;align-items:baseline;gap:10px">
+              <div style="flex:1;font-size:17px;font-weight:600;letter-spacing:-.01em">{{ a.name }}</div>
+              <span style="{{ a.st }}">{{ a.rating }}</span>
+            </div>
+            <div style="font-size:13px;color:var(--muted);margin-top:4px;line-height:1.45">{{ a.line }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ showAds }}" hint-placeholder-val="{{ true }}">
+          <div style="margin:14px;border:1px dashed var(--line);background:var(--chip)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding:7px 10px 0;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">
+              <span>Anzeige</span><span>320 × 100</span>
+            </div>
+            <div style="height:78px;display:flex;align-items:center;justify-content:center;padding:0 14px;font-size:12px;line-height:1.4;text-align:center;color:var(--muted);text-wrap:pretty">Platzhalter — Werbeplatz unter den Ansitzen. Kein Bezug zu Standort, Wildart oder Tagebuchdaten.</div>
+          </div>
+        </sc-if>
+        <div style="padding:14px;font-size:12px;line-height:1.5;color:var(--muted)">Demo-Werte. Produktiv: Open-Meteo / DWD Open Data, Mondphase lokal gerechnet — beides offline vorhaltbar für 7 Tage.</div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ isMehr }}" hint-placeholder-val="{{ false }}">
+      <div class="scroll" style="flex:1">
+        <div style="padding:14px 14px 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Kartenbedienung</div>
+        <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ ctrlOptions }}" as="o" hint-placeholder-count="2">
+            <button onClick="{{ o.onClick }}" style="{{ o.st }}">
+              <div style="font-size:15px;font-weight:600;margin-bottom:3px">{{ o.title }}</div>
+              <div style="font-size:12px;line-height:1.4;color:var(--muted)">{{ o.desc }}</div>
+            </button>
+          </sc-for>
+        </div>
+        <div style="height:2px;background:var(--line)"></div>
+        <div style="padding:14px 14px 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Kartenzeichen</div>
+        <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ signOptions }}" as="o" hint-placeholder-count="2">
+            <button onClick="{{ o.onClick }}" style="{{ o.st }}">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <sc-for list="{{ o.samples }}" as="p" hint-placeholder-count="3">
+                  <div style="{{ p.st }}">
+                    <sc-if value="{{ p.useSym }}" hint-placeholder-val="{{ true }}">
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="{{ p.d }}"></path>
+                      </svg>
+                    </sc-if>
+                    <sc-if value="{{ p.useCode }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:13px;font-weight:600;line-height:1">{{ p.code }}</span>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="font-size:15px;font-weight:600;margin-bottom:3px">{{ o.title }}</div>
+              <div style="font-size:12px;line-height:1.4;color:var(--muted)">{{ o.desc }}</div>
+            </button>
+          </sc-for>
+        </div>
+        <div style="height:2px;background:var(--line)"></div>
+        <div style="padding:14px 14px 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Darstellung</div>
+        <div style="padding:0 14px 14px;display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ themeOptions }}" as="o" hint-placeholder-count="2">
+            <button onClick="{{ o.onClick }}" style="{{ o.st }}">
+              <div style="font-size:15px;font-weight:600;margin-bottom:3px">{{ o.title }}</div>
+              <div style="font-size:12px;line-height:1.4;color:var(--muted)">{{ o.desc }}</div>
+            </button>
+          </sc-for>
+        </div>
+        <div style="height:2px;background:var(--line)"></div>
+        <div style="padding:14px 14px 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Offline-Karten</div>
+        <sc-for list="{{ downloads }}" as="d" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:12px;padding:13px 14px;border-bottom:1px solid var(--rule)">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:15px;font-weight:600">{{ d.name }}</div>
+              <div style="font-size:12px;color:var(--muted)">{{ d.meta }}</div>
+            </div>
+            <button onClick="{{ d.onClick }}" style="{{ d.st }}">{{ d.action }}</button>
+          </div>
+        </sc-for>
+        <div style="height:2px;background:var(--line)"></div>
+        <div style="padding:14px 14px 8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Datenquellen &amp; Recht</div>
+        <div style="padding:0 14px 20px;display:flex;flex-direction:column;gap:12px">
+          <div style="border:2px solid var(--rule);padding:12px">
+            <div style="font-size:14px;font-weight:600;margin-bottom:4px">Topografie</div>
+            <div style="font-size:12px;line-height:1.5;color:var(--muted)">OpenStreetMap-Vektorkacheln (ODbL), eigener Stil mit Höhenlinien aus DGM1. Offline als PMTiles.</div>
+          </div>
+          <div style="border:2px solid var(--rule);padding:12px">
+            <div style="font-size:14px;font-weight:600;margin-bottom:4px">Satellit / Orthofoto</div>
+            <div style="font-size:12px;line-height:1.5;color:var(--muted)">DOP20 des LGLN Niedersachsen als Open Data (Datenlizenz Deutschland 2.0, kommerziell nutzbar, Namensnennung). Andere Länder je Landesamt nachziehen; Sentinel-2 als flächige Rückfallebene.</div>
+          </div>
+          <div style="border:1px solid var(--line);padding:12px">
+            <div style="font-size:14px;font-weight:600;margin-bottom:4px">Werbung</div>
+            <div style="font-size:12px;line-height:1.5;color:var(--muted)">Drei feste Plätze: Tagebuch, Jagdzeiten, Ansitz — je ein Banner am Listenende. Karte, Planung und die Werkzeugleisten bleiben frei, damit im Revier nichts verdeckt wird. Kein Targeting über Standort, Marker oder Tagebuch; Anzeigen werden beim Sync mitgeladen und offline ohne Nachladen ausgespielt.</div>
+            <div style="font-size:12px;line-height:1.5;color:var(--muted);margin-top:6px">{{ adState }}</div>
+          </div>
+          <div style="border:2px solid var(--accent);padding:12px">
+            <div style="font-size:14px;font-weight:600;margin-bottom:4px;color:var(--accent)">Sensible Standorte</div>
+            <div style="font-size:12px;line-height:1.5;color:var(--muted)">Ansitze, Erlegungsorte und Standplanungen werden verschlüsselt gespeichert und nie in Fotos-EXIF geschrieben. Freigabe an Jagdgäste erst in Ausbaustufe 2.</div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeSheet }}" style="position:absolute;inset:0;background:rgba(32,30,29,0.45);z-index:20"></div>
+        <div class="scroll" style="position:absolute;left:0;right:0;bottom:0;max-height:78%;background:var(--surf);border-top:2px solid var(--line);z-index:21">
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:14px;border-bottom:2px solid var(--line)">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">{{ sheetKicker }}</div>
+              <div style="font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.15">{{ sheetTitle }}</div>
+            </div>
+            <button onClick="{{ closeSheet }}" style="width:44px;height:44px;flex:none;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:18px;line-height:1;cursor:pointer">×</button>
+          </div>
+
+          <sc-if value="{{ sheetIsMarker }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:14px">
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Bezeichnung</div>
+                <input value="{{ mName }}" onChange="{{ onMName }}" style="width:100%;box-sizing:border-box;min-height:52px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:16px;padding:0 12px">
+              </div>
+              <div style="display:flex;gap:24px">
+                <div>
+                  <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Position</div>
+                  <div style="font-size:15px;font-variant-numeric:tabular-nums">{{ mCoords }}</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Angelegt</div>
+                  <div style="font-size:15px;font-variant-numeric:tabular-nums">{{ mDate }}</div>
+                </div>
+              </div>
+              <sc-if value="{{ mIsAnsitz }}" hint-placeholder-val="{{ false }}">
+                <div style="border-top:1px solid var(--rule);padding-top:12px">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                    <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Schussentfernung</div>
+                    <div style="font-size:11px;color:var(--muted)">{{ mDistSummary }}</div>
+                  </div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <sc-for list="{{ mDistOptions }}" as="d" hint-placeholder-count="5">
+                      <button onClick="{{ d.onClick }}" style="{{ d.st }}">{{ d.label }}</button>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;gap:8px;margin-top:8px">
+                    <input value="{{ mDistDraft }}" onChange="{{ onMDistDraft }}" placeholder="eigene Entfernung, z. B. 130" inputmode="numeric" style="flex:1;min-width:0;box-sizing:border-box;min-height:48px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:15px;padding:0 12px">
+                    <button onClick="{{ addMDist }}" style="min-height:48px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:14px;padding:0 16px;cursor:pointer">Hinzufügen</button>
+                  </div>
+                  <div style="font-size:11px;line-height:1.5;color:var(--muted);margin-top:8px">{{ mDistHint }}</div>
+                </div>
+              </sc-if>
+
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Notiz</div>
+                <textarea value="{{ mNote }}" onChange="{{ onMNote }}" rows="3" style="width:100%;box-sizing:border-box;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:15px;padding:10px 12px;resize:none"></textarea>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button onClick="{{ markerToJournal }}" style="flex:1;min-height:52px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:15px;font-weight:600;text-align:left;padding:0 14px;cursor:pointer">Ins Tagebuch buchen</button>
+                <button onClick="{{ deleteMarker }}" style="min-height:52px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:14px;padding:0 16px;cursor:pointer">Löschen</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sheetIsField }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;gap:24px">
+                <div>
+                  <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Größe</div>
+                  <div style="font-size:15px;font-variant-numeric:tabular-nums">{{ fHa }}</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Bewirtschafter</div>
+                  <div style="font-size:15px">{{ fFarmer }}</div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Ackerfrucht 2026</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                  <sc-for list="{{ cropOptions }}" as="c" hint-placeholder-count="6">
+                    <button onClick="{{ c.onClick }}" style="{{ c.st }}">{{ c.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Historie</div>
+                <div style="display:flex;flex-direction:column">
+                  <sc-for list="{{ fHistory }}" as="h" hint-placeholder-count="3">
+                    <div style="display:flex;gap:14px;padding:9px 0;border-bottom:1px solid var(--rule)">
+                      <span style="font-size:14px;font-variant-numeric:tabular-nums;color:var(--muted);width:44px">{{ h.year }}</span>
+                      <span style="font-size:14px;flex:1">{{ h.crop }}</span>
+                      <span style="font-size:12px;color:var(--muted)">{{ h.note }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sheetIsReviere }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ revierRows }}" as="r" hint-placeholder-count="2">
+                <div style="display:flex;gap:8px;align-items:stretch">
+                  <button onClick="{{ r.onClick }}" style="{{ r.st }}">
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <div style="{{ r.swatch }}"></div>
+                      <div style="flex:1;text-align:left;min-width:0">
+                        <div style="font-size:16px;font-weight:600">{{ r.name }}</div>
+                        <div style="font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums">{{ r.meta }}</div>
+                      </div>
+                      <div style="font-size:10px;letter-spacing:.1em;color:var(--accent);font-weight:600">{{ r.badge }}</div>
+                    </div>
+                  </button>
+                  <button onClick="{{ r.onVis }}" style="{{ r.visSt }}">{{ r.vis }}</button>
+                </div>
+              </sc-for>
+
+              <div style="border-top:1px solid var(--rule);padding-top:12px;display:flex;flex-direction:column;gap:10px">
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Aktives Revier bearbeiten</div>
+                <input value="{{ actName }}" onChange="{{ onActName }}" style="width:100%;box-sizing:border-box;min-height:52px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:16px;padding:0 12px">
+                <div style="display:flex;gap:8px">
+                  <sc-for list="{{ actKinds }}" as="k" hint-placeholder-count="3">
+                    <button onClick="{{ k.onClick }}" style="{{ k.st }}">{{ k.label }}</button>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ canDeleteRevier }}" hint-placeholder-val="{{ true }}">
+                  <button onClick="{{ deleteRevier }}" style="min-height:48px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:14px;text-align:left;padding:0 14px;cursor:pointer">Revier mit allen Markern löschen</button>
+                </sc-if>
+              </div>
+
+              <button onClick="{{ startDraw }}" style="min-height:56px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:15px;font-weight:600;text-align:left;padding:0 14px;cursor:pointer">Neues Revier zeichnen</button>
+              <div style="font-size:12px;line-height:1.5;color:var(--muted)">Marker, Ansitze und Flächen gehören dem beim Anlegen aktiven Revier. Import von Grenzen als GeoJSON, GPX oder Shapefile ist geplant — viele Reviere liegen bei der Jagdbehörde schon digital vor.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sheetIsLegend }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ legend }}" as="l" hint-placeholder-count="7">
+                <div style="display:flex;align-items:center;gap:12px">
+                  <div style="{{ l.st }}">
+                    <sc-if value="{{ l.useSym }}" hint-placeholder-val="{{ true }}">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="{{ l.d }}"></path>
+                      </svg>
+                    </sc-if>
+                    <sc-if value="{{ l.useCode }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:14px;font-weight:600;line-height:1">{{ l.code }}</span>
+                    </sc-if>
+                  </div>
+                  <div style="flex:1">
+                    <div style="font-size:15px;font-weight:600">{{ l.label }}</div>
+                    <div style="font-size:12px;color:var(--muted)">{{ l.count }}</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sheetIsListe }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;flex-direction:column">
+                <sc-for list="{{ listeRows }}" as="r" hint-placeholder-count="3">
+                  <button onClick="{{ r.onClick }}" style="{{ r.st }}">
+                    <div style="display:flex;align-items:baseline;gap:10px">
+                      <span style="font-size:20px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;flex:none">{{ r.nr }}</span>
+                      <div style="flex:1;text-align:left;min-width:0">
+                        <div style="font-size:16px;font-weight:600;letter-spacing:-.01em">{{ r.title }}</div>
+                        <div style="font-size:12px;color:var(--muted);line-height:1.4">{{ r.sub }}</div>
+                      </div>
+                      <span style="{{ r.timeSt }}">{{ r.zeit }}</span>
+                    </div>
+                    <div style="display:flex;gap:14px;margin-top:8px">
+                      <span style="font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums">{{ r.posts }}</span>
+                      <span style="font-size:12px;color:var(--muted)">{{ r.richtung }}</span>
+                      <span style="font-size:12px;color:var(--muted)">{{ r.ausschnitt }}</span>
+                    </div>
+                  </button>
+                </sc-for>
+              </div>
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Kartenausschnitte</div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ extentRows }}" as="x" hint-placeholder-count="2">
+                    <button onClick="{{ x.onClick }}" style="{{ x.st }}">
+                      <div style="font-size:15px;font-weight:600;margin-bottom:3px">{{ x.name }}</div>
+                      <div style="font-size:12px;color:var(--muted)">{{ x.meta }}</div>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button onClick="{{ addTreiben }}" style="flex:1;min-height:54px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:15px;font-weight:600;text-align:left;padding:0 14px;cursor:pointer">{{ addTreibenLabel }}</button>
+                <button onClick="{{ exportPlan }}" style="min-height:54px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:13px;padding:0 14px;cursor:pointer">PDF</button>
+              </div>
+              <div style="font-size:12px;line-height:1.5;color:var(--muted)">Der Ausdruck enthält je Ausschnitt eine Kartenseite mit Standnummern und die Liste als Tabelle — für Jagdleitung und Standkarten der Schützen.</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sheetIsPost }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:14px">
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Besetzung</div>
+                <input value="{{ postName }}" onChange="{{ onPostName }}" placeholder="Name des Schützen" style="width:100%;box-sizing:border-box;min-height:52px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:16px;padding:0 12px">
+              </div>
+              <div style="display:flex;gap:24px">
+                <div>
+                  <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Zugehörig</div>
+                  <div style="font-size:15px">{{ postTreiben }}</div>
+                </div>
+                <div>
+                  <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Position</div>
+                  <div style="font-size:15px;font-variant-numeric:tabular-nums">{{ postCoords }}</div>
+                </div>
+              </div>
+              <button onClick="{{ deletePost }}" style="min-height:52px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:14px;text-align:left;padding:0 14px;cursor:pointer">Stand löschen</button>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sheetIsNewJagd }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:14px">
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Jagdart</div>
+                <div style="display:flex;gap:8px">
+                  <sc-for list="{{ artOptions }}" as="o" hint-placeholder-count="2">
+                    <button onClick="{{ o.onClick }}" style="{{ o.st }}">{{ o.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Datum</div>
+                <input value="{{ njDatum }}" onChange="{{ onNjDatum }}" style="width:100%;box-sizing:border-box;min-height:52px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:16px;padding:0 12px;font-variant-numeric:tabular-nums">
+              </div>
+              <button onClick="{{ saveJagd }}" style="min-height:58px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:16px;font-weight:600;text-align:left;padding:0 16px;cursor:pointer">Jagd anlegen</button>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sheetIsEntry }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:14px">
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Art des Eintrags</div>
+                <div style="display:flex;gap:8px">
+                  <sc-for list="{{ typOptions }}" as="o" hint-placeholder-count="3">
+                    <button onClick="{{ o.onClick }}" style="{{ o.st }}">{{ o.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Wildart</div>
+                <div style="display:flex;flex-wrap:wrap;gap:8px">
+                  <sc-for list="{{ wildOptions }}" as="o" hint-placeholder-count="6">
+                    <button onClick="{{ o.onClick }}" style="{{ o.st }}">{{ o.label }}</button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <div style="flex:1">
+                  <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Gewicht (kg)</div>
+                  <input value="{{ fGewicht }}" onChange="{{ onGewicht }}" placeholder="z. B. 18,5" style="width:100%;box-sizing:border-box;min-height:52px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:16px;padding:0 12px;font-variant-numeric:tabular-nums">
+                </div>
+                <div style="flex:1">
+                  <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Standort</div>
+                  <button onClick="{{ pickOnMap }}" style="width:100%;min-height:52px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:14px;text-align:left;padding:0 12px;cursor:pointer">{{ fOrt }}</button>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Foto</div>
+                <button onClick="{{ toggleFoto }}" style="{{ fotoSt }}">{{ fotoLabel }}</button>
+              </div>
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Bemerkung</div>
+                <textarea value="{{ fText }}" onChange="{{ onFText }}" rows="3" placeholder="Wind, Verhalten, Begleitumstände" style="width:100%;box-sizing:border-box;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:15px;padding:10px 12px;resize:none"></textarea>
+              </div>
+              <button onClick="{{ toggleMelden }}" style="{{ meldenSt }}">
+                <div style="font-size:15px;font-weight:600;margin-bottom:3px">{{ meldenLabel }}</div>
+                <div style="font-size:12px;line-height:1.4;color:var(--muted)">Streckenliste Niedersachsen — Übermittlung erst nach Freigabe, offline vorgemerkt.</div>
+              </button>
+              <button onClick="{{ saveEntry }}" style="min-height:58px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:16px;font-weight:600;text-align:left;padding:0 16px;cursor:pointer">Eintrag speichern</button>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ sheetIsNaming }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:14px;display:flex;flex-direction:column;gap:14px">
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Revier-Bezeichnung</div>
+                <input value="{{ rName }}" onChange="{{ onRName }}" style="width:100%;box-sizing:border-box;min-height:52px;border:2px solid var(--line);background:transparent;color:var(--ink);font-size:16px;padding:0 12px">
+              </div>
+              <div>
+                <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)">Berechnete Fläche</div>
+                <div style="font-size:28px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ rHa }}</div>
+              </div>
+              <button onClick="{{ saveRevier }}" style="min-height:58px;border:2px solid var(--accent);background:var(--accent);color:#fff;font-size:16px;font-weight:600;text-align:left;padding:0 16px;cursor:pointer">Revier anlegen</button>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <div style="display:flex;border-top:2px solid var(--line);background:var(--surf);flex:none">
+        <sc-for list="{{ nav }}" as="n" hint-placeholder-count="6">
+          <button onClick="{{ n.onClick }}" style="{{ n.st }}">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="{{ n.d }}"></path>
+            </svg>
+            <span style="font-size:9px;letter-spacing:.02em">{{ n.label }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </x-import>
+
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center">
+    <span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6b6663">Kartenbedienung</span>
+    <sc-for list="{{ ctrlSwitch }}" as="o" hint-placeholder-count="2">
+      <button onClick="{{ o.onClick }}" style="{{ o.st }}">{{ o.label }}</button>
+    </sc-for>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:900,&quot;height&quot;:1180},&quot;nachtmodus&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Darstellung&quot;},&quot;kartenstil&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;topo&quot;,&quot;sat&quot;],&quot;default&quot;:&quot;topo&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Darstellung&quot;},&quot;kartenzeichen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;symbol&quot;,&quot;buchstabe&quot;],&quot;default&quot;:&quot;symbol&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Darstellung&quot;},&quot;werbefrei&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Darstellung&quot;},&quot;buechsenlicht&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;daemmerung&quot;,&quot;sa30&quot;,&quot;sa60&quot;],&quot;default&quot;:&quot;daemmerung&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Jagdrecht&quot;},&quot;kartenbedienung&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;werkzeug&quot;,&quot;zielkreuz&quot;],&quot;default&quot;:&quot;werkzeug&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Bedienung&quot;}}">
+// ── Astronomie: Sonne, Dämmerung, Mond ──────────────
+const RAD = Math.PI / 180, J1970 = 2440588, J2000 = 2451545, DAYMS = 86400000, OBL = 23.4397 * RAD, SDIST = 149598000;
+const toDays = d => d.valueOf() / DAYMS - 0.5 + J1970 - J2000;
+const decl = (l, b) => Math.asin(Math.sin(b) * Math.cos(OBL) + Math.cos(b) * Math.sin(OBL) * Math.sin(l));
+const rasc = (l, b) => Math.atan2(Math.sin(l) * Math.cos(OBL) - Math.tan(b) * Math.sin(OBL), Math.cos(l));
+const sMeanAnom = d => RAD * (357.5291 + 0.98560028 * d);
+const eclLon = M => M + RAD * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M)) + RAD * 102.9372 + Math.PI;
+const fromJulian = j => new Date((j + 0.5 - J1970) * DAYMS);
+const sidereal = (d, lw) => RAD * (280.16 + 360.9856235 * d) - lw;
+const clamp1 = x => Math.max(-1, Math.min(1, x));
+
+function sunCoords(d) { const M = sMeanAnom(d), L = eclLon(M); return { dec: decl(L, 0), ra: rasc(L, 0), M, L }; }
+function moonCoords(d) {
+  const L = RAD * (218.316 + 13.176396 * d), M = RAD * (134.963 + 13.064993 * d), F = RAD * (93.272 + 13.229350 * d);
+  const l = L + RAD * 6.289 * Math.sin(M), b = RAD * 5.128 * Math.sin(F), dt = 385001 - 20905 * Math.cos(M);
+  return { ra: rasc(l, b), dec: decl(l, b), dist: dt };
+}
+function altOf(ra, dec, d, lat, lng) {
+  const H = sidereal(d, -lng * RAD) - ra, phi = lat * RAD;
+  return Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H));
+}
+function moonAlt(date, lat, lng) { const d = toDays(date), c = moonCoords(d); return altOf(c.ra, c.dec, d, lat, lng); }
+
+function sunEvent(date, lat, lng, hDeg) {
+  const lw = -lng * RAD, phi = lat * RAD, d = toDays(date);
+  const n = Math.round(d - 0.0009 - lw / (2 * Math.PI));
+  const ds = 0.0009 + lw / (2 * Math.PI) + n;
+  const M = sMeanAnom(ds), L = eclLon(M), dec = decl(L, 0);
+  const noon = J2000 + ds + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+  const h = hDeg * RAD;
+  const x = (Math.sin(h) - Math.sin(phi) * Math.sin(dec)) / (Math.cos(phi) * Math.cos(dec));
+  if (x < -1 || x > 1) return { rise: null, set: null };
+  const w = Math.acos(x);
+  const a = 0.0009 + (w + lw) / (2 * Math.PI) + n;
+  const jSet = J2000 + a + 0.0053 * Math.sin(M) - 0.0069 * Math.sin(2 * L);
+  return { rise: fromJulian(noon - (jSet - noon)), set: fromJulian(jSet) };
+}
+
+const ICON = {
+  ansitz: 'M12 3l6 5H6zM8 8v13M16 8v13M8 14h8',
+  falle: 'M12 4l-8 6h16zM7 20v-8M12 20v-8M17 20v-8M4 20h16',
+  wechsel: 'M3 17h6l4-10h5M15 3l4 4-4 4',
+  kirrung: 'M4 20h16M6 20c1-6 4-9 6-9s5 3 6 9M12 11V5M9 7l3-3 3 3',
+  best: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7zM12 9a3 3 0 100 6 3 3 0 000-6',
+  salz: 'M8 8h8l-1 12H9zM10 8V5h4v3M10 13h4',
+  erleg: 'M12 2v6M12 16v6M2 12h6M16 12h6M12 8a4 4 0 100 8 4 4 0 000-8',
+  schuetze: 'M12 3a3 3 0 100 6 3 3 0 000-6M6 21v-2a6 6 0 0112 0v2',
+  stand: 'M5 21h14M12 21V9M7 9h10l-5-6z',
+  arrow: 'M4 12h13M13 7l5 5-5 5M4 5v14',
+  split: 'M4 4l16 16M9 3l-6 6M15 21l6-6',
+  extent: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'
+};
+
+const TYPES = [
+  { id: 'ansitz', code: 'A', label: 'Ansitz / Hochsitz', short: 'Ansitz', accent: false },
+  { id: 'falle', code: 'F', label: 'Falle', short: 'Falle', accent: false },
+  { id: 'wechsel', code: 'W', label: 'Wechsel', short: 'Wechsel', accent: false },
+  { id: 'kirrung', code: 'K', label: 'Kirrung / Luderplatz', short: 'Kirrung', accent: false },
+  { id: 'best', code: 'T', label: 'Tierbestätigung', short: 'Bestätigung', accent: true },
+  { id: 'salz', code: 'S', label: 'Salzlecke', short: 'Salzlecke', accent: false },
+  { id: 'erleg', code: 'E', label: 'Erlegungsort', short: 'Erlegung', accent: true }
+];
+const CROPS = ['Wintergerste', 'Winterweizen', 'Silomais', 'Winterraps', 'Zuckerrübe', 'Kleegras', 'Grünland', 'Brache'];
+const WILD = ['Rehwild', 'Schwarzwild', 'Rotwild', 'Damwild', 'Feldhase', 'Fuchs', 'Waschbär', 'Stockente'];
+const M_PER_PX = 12;
+const COMPASS = ['N', 'NO', 'O', 'SO', 'S', 'SW', 'W', 'NW'];
+
+const ZEIT_GROUPS = [
+  { id: 'schalen', name: 'Schalenwild', rows: [
+    ['Rehwild', 'Bock, Schmalreh', [5, 1], [10, 15]],
+    ['Rehwild', 'Ricke, Kitz', [9, 1], [1, 31]],
+    ['Rotwild', 'Hirsch, Alttier', [8, 1], [1, 31]],
+    ['Rotwild', 'Kalb, Schmaltier, Schmalspießer', [8, 1], [2, 28]],
+    ['Damwild', 'Hirsch, Alttier', [9, 1], [1, 31]],
+    ['Damwild', 'Kalb, Schmaltier', [8, 1], [2, 28]],
+    ['Schwarzwild', 'Keiler, Überläufer, Frischling', [1, 1], [12, 31]],
+    ['Schwarzwild', 'Bache, nicht führend', [6, 16], [1, 31]],
+    ['Muffelwild', 'alle Altersklassen', [8, 1], [1, 31]]
+  ] },
+  { id: 'haar', name: 'Haarwild', rows: [
+    ['Feldhase', 'alle', [10, 1], [1, 15]],
+    ['Wildkaninchen', 'alle', [10, 15], [2, 15]],
+    ['Nutria', 'alle (Neozoon)', [1, 1], [12, 31]],
+    ['Wildkatze', 'ganzjährig geschützt', [0, 0], [0, 0]]
+  ] },
+  { id: 'raub', name: 'Raubwild', rows: [
+    ['Fuchs', 'alle', [8, 1], [2, 28]],
+    ['Dachs', 'alle', [8, 1], [10, 31]],
+    ['Steinmarder', 'alle', [10, 1], [2, 28]],
+    ['Baummarder', 'alle', [10, 1], [2, 28]],
+    ['Iltis', 'alle', [8, 1], [2, 28]],
+    ['Waschbär', 'alle (Neozoon)', [1, 1], [12, 31]],
+    ['Marderhund', 'alle (Neozoon)', [1, 1], [12, 31]],
+    ['Mink', 'alle (Neozoon)', [1, 1], [12, 31]]
+  ] },
+  { id: 'feder', name: 'Federwild', rows: [
+    ['Stockente', 'alle', [9, 1], [1, 15]],
+    ['Ringeltaube', 'alle', [11, 1], [2, 20]],
+    ['Fasan', 'Hahn, Henne', [10, 1], [1, 15]],
+    ['Waldschnepfe', 'alle', [10, 16], [1, 15]],
+    ['Graugans', 'alle', [8, 1], [1, 15]],
+    ['Kanadagans', 'alle', [8, 1], [1, 15]],
+    ['Nilgans', 'alle (Neozoon)', [7, 16], [1, 15]],
+    ['Blässhuhn', 'alle', [9, 1], [1, 15]],
+    ['Rebhuhn', 'behördliche Freigabe nötig', [0, 0], [0, 0]]
+  ] }
+];
+
+class Component extends DCLogic {
+  state = {
+    screen: 'karte',
+    night: this.props.nachtmodus ?? false,
+    mapStyle: this.props.kartenstil ?? 'topo',
+    ctrl: this.props.kartenbedienung ?? 'werkzeug',
+    zeichen: this.props.kartenzeichen ?? 'symbol',
+    tool: null, radial: false, aim: null,
+    pan: { x: 6, y: 40 }, zoom: 1,
+    sheet: null, sel: null, selField: null, selPost: null,
+    drawing: null, pendingRevier: null, rName: 'Revier Neu',
+    toast: '', lastAdded: null, jfilter: 'Alle',
+    openGroups: { schalen: true, haar: false, raub: false, feder: false },
+    dayOff: 0,
+    measure: false, measFrom: null, measTo: null,
+    distDraft: '',
+    form: { typ: 'Beobachtung', wildart: 'Rehwild', gewicht: '', ort: 'Kanzel Eichenschlag', foto: false, text: '', melden: false },
+
+    // Jagdplanung
+    pPan: { x: 6, y: 30 }, pZoom: 0.9,
+    selJagd: 'j1', selTreiben: 't1', pTool: null, pPend: null, pView: 'all',
+    njArt: 'Treibjagd', njDatum: '05.12.2026',
+    jagden: [
+      { id: 'j1', art: 'Treibjagd', datum: '28.10.2026', ort: 'Revier Eichenkamp' },
+      { id: 'j2', art: 'Drückjagd', datum: '14.11.2026', ort: 'Eichenkamp + Ostkamp' }
+    ],
+    treiben: [
+      { id: 't1', jagd: 'j1', nr: 1, name: 'Eichenkamp Nord', flaeche: 'Schlag Eichenkamp', zeit: '09:30' },
+      { id: 't2', jagd: 'j1', nr: 2, name: 'Bachwiese', flaeche: 'Schlag Bachwiese', zeit: '10:45' },
+      { id: 't3', jagd: 'j1', nr: 3, name: 'Lange Furche', flaeche: 'Schlag Lange Furche', zeit: '12:15' },
+      { id: 'd1', jagd: 'j2', nr: 1, name: 'Gebiet Buchenriegel', flaeche: 'Waldort Nord', zeit: '09:00' },
+      { id: 'd2', jagd: 'j2', nr: 2, name: 'Gebiet Südkamp', flaeche: 'Waldort Süd', zeit: '09:00' }
+    ],
+    posts: [
+      { id: 'p1', treiben: 't1', nr: 1, x: 176, y: 118, name: 'H. Meyer' },
+      { id: 'p2', treiben: 't1', nr: 2, x: 214, y: 128, name: 'J. Bartels' },
+      { id: 'p3', treiben: 't1', nr: 3, x: 250, y: 142, name: '' },
+      { id: 'p4', treiben: 't2', nr: 1, x: 112, y: 206, name: 'K. Ahlers' },
+      { id: 'p5', treiben: 't2', nr: 2, x: 150, y: 200, name: '' },
+      { id: 'p6', treiben: 't3', nr: 1, x: 200, y: 220, name: 'F. Lange' },
+      { id: 'p7', treiben: 'd1', nr: 1, x: 70, y: 60, name: 'H. Meyer' },
+      { id: 'p8', treiben: 'd1', nr: 2, x: 110, y: 48, name: 'W. Roth' },
+      { id: 'p9', treiben: 'd2', nr: 1, x: 90, y: 330, name: 'F. Lange' }
+    ],
+    arrows: [
+      { id: 'a1', treiben: 't1', x1: 200, y1: 200, x2: 214, y2: 146 },
+      { id: 'a2', treiben: 't2', x1: 150, y1: 262, x2: 132, y2: 212 },
+      { id: 'a3', treiben: 't3', x1: 232, y1: 232, x2: 240, y2: 282 },
+      { id: 'a4', treiben: 'd1', x1: 40, y1: 130, x2: 92, y2: 74 }
+    ],
+    extents: [
+      { id: 'x1', jagd: 'j1', name: 'Ausschnitt Nord', x1: 90, y1: 90, x2: 290, y2: 230 },
+      { id: 'x2', jagd: 'j1', name: 'Ausschnitt Süd', x1: 90, y1: 190, x2: 300, y2: 320 },
+      { id: 'x3', jagd: 'j2', name: 'Ausschnitt Waldorte', x1: 20, y1: 20, x2: 200, y2: 360 }
+    ],
+
+    markers: [
+      { id: 1, type: 'ansitz', name: 'Kanzel Eichenschlag', x: 150, y: 118, note: 'Blick auf Weizenkante, Anstellung Nordost.', date: '12.04.2024', revier: 'r1', dists: [100, 200] },
+      { id: 2, type: 'ansitz', name: 'Bodensitz Bachwiese', x: 104, y: 254, note: 'Nur bei Südwestwind bejagbar.', date: '03.06.2024', revier: 'r1', dists: [80] },
+      { id: 3, type: 'ansitz', name: 'Kanzel Rapskante', x: 256, y: 248, note: '', date: '20.07.2025', revier: 'r1', dists: [150] },
+      { id: 4, type: 'falle', name: 'Betonrohrfalle Nord', x: 84, y: 108, note: 'Fangmelder aktiv, Kontrolle täglich.', date: '01.02.2025', revier: 'r1' },
+      { id: 5, type: 'wechsel', name: 'Wechsel Waldkante', x: 190, y: 188, note: 'Sauen wechseln abends aus der Dickung.', date: '15.09.2024', revier: 'r1' },
+      { id: 6, type: 'kirrung', name: 'Kirrung Maisecke', x: 158, y: 266, note: 'Mais, Kontrolle So + Do.', date: '08.08.2026', revier: 'r1' },
+      { id: 7, type: 'best', name: 'Rotte, 6 Stück', x: 214, y: 300, note: 'Bestätigt am 24.08. bei Ansitz.', date: '24.08.2026', revier: 'r1' },
+      { id: 8, type: 'salz', name: 'Salzlecke Hangweg', x: 120, y: 150, note: '', date: '11.05.2023', revier: 'r1' },
+      { id: 9, type: 'erleg', name: 'Überläuferkeiler 42 kg', x: 238, y: 178, note: 'Kammerschuss, 18.08.2026, 06:10.', date: '18.08.2026', revier: 'r1' },
+      { id: 10, type: 'ansitz', name: 'Leiter Südfeld', x: 300, y: 398, note: 'Revier Ostkamp.', date: '02.03.2026', revier: 'r2', dists: [100] }
+    ],
+    fieldData: [
+      { id: 'f1', points: '180,120 262,140 252,212 174,196', name: 'Schlag Eichenkamp', farmer: 'Hof Meyer', crop: 'Winterweizen', history: [{ year: 2025, crop: 'Winterraps', note: 'starker Fraß' }, { year: 2024, crop: 'Silomais', note: 'Wildschaden 0,4 ha' }, { year: 2023, crop: 'Wintergerste', note: '—' }] },
+      { id: 'f2', points: '118,202 174,196 186,268 108,272', name: 'Schlag Bachwiese', farmer: 'Hof Meyer', crop: 'Silomais', history: [{ year: 2025, crop: 'Wintergerste', note: '—' }, { year: 2024, crop: 'Kleegras', note: 'ruhig' }, { year: 2023, crop: 'Silomais', note: 'Wildschaden 1,1 ha' }] },
+      { id: 'f3', points: '196,216 252,216 268,292 202,286', name: 'Schlag Lange Furche', farmer: 'Agrar Ostkamp GbR', crop: 'Winterraps', history: [{ year: 2025, crop: 'Winterweizen', note: '—' }, { year: 2024, crop: 'Zuckerrübe', note: 'Sauen im Herbst' }, { year: 2023, crop: 'Winterraps', note: '—' }] },
+      { id: 'f4', points: '250,368 342,350 352,420 264,432', name: 'Schlag Südkamp', farmer: 'Agrar Ostkamp GbR', crop: 'Grünland', history: [{ year: 2025, crop: 'Grünland', note: '—' }, { year: 2024, crop: 'Grünland', note: 'Kitzrettung 2 Kitze' }, { year: 2023, crop: 'Kleegras', note: '—' }] }
+    ],
+    activeRevier: 'r1',
+    revierData: [
+      { id: 'r1', name: 'Revier Eichenkamp', points: '40,58 172,28 250,58 272,148 340,190 320,300 230,360 130,340 60,250 30,150', visible: true, kind: 'eigen' },
+      { id: 'r2', name: 'Revier Ostkamp (Pacht)', points: '320,300 382,330 392,442 300,472 232,420 230,360', visible: true, kind: 'pacht' }
+    ],
+    journal: [
+      { id: 1, typ: 'Abschuss', when: '26.08.2026 · 20:15', title: 'Rehbock, 18,5 kg', line: 'Kanzel Eichenschlag · Kammerschuss, kurze Flucht · Wind SW', chips: ['Foto', 'Streckenliste gemeldet'], wild: 'Rehwild' },
+      { id: 2, typ: 'Beobachtung', when: '24.08.2026 · 05:40', title: 'Schwarzwild, Rotte 6 Stück', line: 'Kirrung Maisecke · zwei Überläufer, vier Frischlinge', chips: ['Marker gesetzt'], wild: 'Schwarzwild' },
+      { id: 3, typ: 'Ansitz', when: '21.08.2026 · 20:00', title: 'Ansitz 2 h, kein Anblick', line: 'Kanzel Rapskante · Wind drehend, Raps noch hoch', chips: [], wild: '' },
+      { id: 4, typ: 'Abschuss', when: '18.08.2026 · 06:10', title: 'Überläuferkeiler, 42 kg', line: 'Feldkante Lange Furche · Trichinenprobe entnommen', chips: ['Foto', 'Meldung offen'], wild: 'Schwarzwild' }
+    ]
+  };
+
+  // ── geometry helpers ──────────────────────────────────
+  parse(pts) { return pts.trim().split(/\s+/).map(p => p.split(',').map(Number)); }
+  ha(pts) {
+    const p = Array.isArray(pts) ? pts : this.parse(pts);
+    let a = 0;
+    for (let i = 0; i < p.length; i++) {
+      const q = p[(i + 1) % p.length];
+      a += p[i][0] * q[1] - q[0] * p[i][1];
+    }
+    return Math.abs(a / 2) * M_PER_PX * M_PER_PX / 10000;
+  }
+  inPoly(pt, poly) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const xi = poly[i][0], yi = poly[i][1], xj = poly[j][0], yj = poly[j][1];
+      if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  }
+  cut(poly, a, b) {
+    const side = p => (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]);
+    const isect = (p, q) => {
+      const s1 = side(p), s2 = side(q), t = s1 / (s1 - s2);
+      return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t];
+    };
+    const L = [], R = [];
+    for (let i = 0; i < poly.length; i++) {
+      const cur = poly[i], nxt = poly[(i + 1) % poly.length];
+      const sc = side(cur), sn = side(nxt);
+      if (sc >= 0) L.push(cur);
+      if (sc <= 0) R.push(cur);
+      if ((sc > 0 && sn < 0) || (sc < 0 && sn > 0)) { const X = isect(cur, nxt); L.push(X); R.push(X); }
+    }
+    if (L.length < 3 || R.length < 3) return null;
+    return [L, R];
+  }
+  toStr(p) { return p.map(q => Math.round(q[0]) + ',' + Math.round(q[1])).join(' '); }
+  fmt(n, d) { return n.toFixed(d === undefined ? 1 : d).replace('.', ','); }
+  type(id) { return TYPES.find(t => t.id === id) || TYPES[0]; }
+  flash(msg, id) { this.setState({ toast: msg, lastAdded: id === undefined ? null : id }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast: '' }), 4200); }
+  gps(x, y) { return (52.318 + (520 - y) * 0.000108).toFixed(5).replace('.', ',') + ' N  ' + (9.742 + x * 0.000175).toFixed(5).replace('.', ',') + ' E'; }
+  compass(dx, dy) {
+    const ang = (Math.atan2(dx, -dy) * 180 / Math.PI + 360) % 360;
+    return COMPASS[Math.round(ang / 45) % 8];
+  }
+
+  // ── style factories ───────────────────────────────────
+  chip(active, extra) {
+    return Object.assign({
+      minHeight: 44, padding: '0 14px', border: '2px solid ' + (active ? 'var(--accent)' : 'var(--line)'),
+      background: active ? 'var(--accent)' : 'transparent', color: active ? '#fff' : 'var(--ink)',
+      fontSize: 14, fontWeight: active ? 600 : 400, cursor: 'pointer', letterSpacing: '.01em'
+    }, extra || {});
+  }
+  block(active) {
+    return {
+      border: '2px solid ' + (active ? 'var(--accent)' : 'var(--rule)'), background: 'transparent',
+      color: 'var(--ink)', padding: '14px', textAlign: 'left', cursor: 'pointer', display: 'block', width: '100%',
+      boxSizing: 'border-box'
+    };
+  }
+  tag(accent) {
+    return {
+      fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase',
+      padding: '4px 7px', border: '2px solid ' + (accent ? 'var(--accent)' : 'var(--rule)'),
+      color: accent ? 'var(--accent)' : 'var(--muted)'
+    };
+  }
+  badge(open) {
+    return {
+      fontSize: 10, fontWeight: 600, letterSpacing: '.1em', marginTop: 4, display: 'inline-block',
+      padding: '3px 6px', border: '2px solid ' + (open ? 'var(--accent)' : 'var(--rule)'),
+      color: open ? 'var(--accent)' : 'var(--muted)'
+    };
+  }
+
+  // ── map interaction (Revierkarte) ─────────────────────
+  toMap(e, pan, zoom) {
+    const box = e.currentTarget.getBoundingClientRect();
+    return {
+      x: Math.round((e.clientX - box.left - pan.x - 200 * (1 - zoom)) / zoom),
+      y: Math.round((e.clientY - box.top - pan.y - 260 * (1 - zoom)) / zoom)
+    };
+  }
+  panStart = (e) => { this._p = { x: e.clientX, y: e.clientY, pan: this.state.pan, moved: false }; };
+  panMove = (e) => {
+    if (this.state.measure) {
+      const pt = this.toMap(e, this.state.pan, this.state.zoom);
+      this.setState({ measTo: pt });
+      return;
+    }
+    if (!this._p) return;
+    const dx = e.clientX - this._p.x, dy = e.clientY - this._p.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) this._p.moved = true;
+    if (this._p.moved) this.setState({ pan: { x: this._p.pan.x + dx, y: this._p.pan.y + dy } });
+  };
+  panEnd = () => { setTimeout(() => { this._p = null; }, 0); };
+
+  pPanStart = (e) => { this._q = { x: e.clientX, y: e.clientY, pan: this.state.pPan, moved: false }; };
+  pPanMove = (e) => {
+    if (!this._q) return;
+    const dx = e.clientX - this._q.x, dy = e.clientY - this._q.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) this._q.moved = true;
+    if (this._q.moved) this.setState({ pPan: { x: this._q.pan.x + dx, y: this._q.pan.y + dy } });
+  };
+  pPanEnd = () => { setTimeout(() => { this._q = null; }, 0); };
+
+  mapClick = (e) => {
+    if (this._p && this._p.moved) return;
+    const pt = this.toMap(e, this.state.pan, this.state.zoom);
+    if (this.state.measure) { this.setState({ measFrom: pt, measTo: pt }); return; }
+    if (this.state.drawing) { this.setState(s => ({ drawing: s.drawing.concat([[pt.x, pt.y]]) })); return; }
+    if (this.state.pickTarget) {
+      const nearest = this.state.markers.reduce((b, m) => {
+        const d = (m.x - pt.x) ** 2 + (m.y - pt.y) ** 2;
+        return d < b.d ? { d, m } : b;
+      }, { d: 1e9, m: null });
+      const ort = nearest.m && nearest.d < 3000 ? nearest.m.name : this.gps(pt.x, pt.y);
+      this.setState(s => ({ pickTarget: false, sheet: 'entry', form: Object.assign({}, s.form, { ort }) }));
+      return;
+    }
+    if (this.state.tool) this.addMarker(this.state.tool, pt.x, pt.y);
+  };
+
+  addMarker(typeId, x, y) {
+    const t = this.type(typeId);
+    const n = this.state.markers.filter(m => m.type === typeId).length + 1;
+    const id = Date.now();
+    const m = { id, type: typeId, name: t.short + ' ' + n, x, y, note: '', date: '28.08.2026', revier: this.state.activeRevier };
+    if (typeId === 'ansitz') m.dists = [100];
+    this.setState(s => ({ markers: s.markers.concat([m]), sel: id, sheet: 'marker', tool: null, aim: null, radial: false }));
+    this.flash(t.label + ' gesetzt · ' + this.gps(x, y), id);
+  }
+
+  // ── planning interaction ──────────────────────────────
+  pMapClick = (e) => {
+    if (this._q && this._q.moved) return;
+    const s = this.state;
+    if (!s.pTool) return;
+    const pt = this.toMap(e, s.pPan, s.pZoom);
+    const isDrueck = this.jagd().art === 'Drückjagd';
+
+    if (s.pTool === 'post') {
+      const nr = s.posts.filter(p => p.treiben === s.selTreiben).length + 1;
+      const id = 'p' + Date.now();
+      this.setState(p => ({ posts: p.posts.concat([{ id, treiben: p.selTreiben, nr, x: pt.x, y: pt.y, name: '' }]) }));
+      this.flash((isDrueck ? 'Stand ' : 'Vorstehschütze ') + nr + ' gesetzt · ' + this.treibenName(s.selTreiben));
+      return;
+    }
+    if (s.pTool === 'arrow') {
+      if (!s.pPend) { this.setState({ pPend: pt }); return; }
+      const a = { id: 'a' + Date.now(), treiben: s.selTreiben, x1: s.pPend.x, y1: s.pPend.y, x2: pt.x, y2: pt.y };
+      this.setState(p => ({ arrows: p.arrows.concat([a]), pPend: null }));
+      this.flash((isDrueck ? 'Schussfeld' : 'Treibrichtung') + ' ' + this.compass(pt.x - s.pPend.x, pt.y - s.pPend.y) + ' eingezeichnet');
+      return;
+    }
+    if (s.pTool === 'split') {
+      if (!s.pPend) { this.setState({ pPend: pt }); return; }
+      this.splitField([s.pPend.x, s.pPend.y], [pt.x, pt.y]);
+      return;
+    }
+    if (s.pTool === 'extent') {
+      if (!s.pPend) { this.setState({ pPend: pt }); return; }
+      const x1 = Math.min(s.pPend.x, pt.x), x2 = Math.max(s.pPend.x, pt.x);
+      const y1 = Math.min(s.pPend.y, pt.y), y2 = Math.max(s.pPend.y, pt.y);
+      if (x2 - x1 < 30 || y2 - y1 < 30) { this.setState({ pPend: null }); this.flash('Ausschnitt zu klein — zwei gegenüberliegende Ecken antippen.'); return; }
+      const n = s.extents.filter(x => x.jagd === s.selJagd).length + 1;
+      const x = { id: 'x' + Date.now(), jagd: s.selJagd, name: 'Ausschnitt ' + n, x1, y1, x2, y2 };
+      this.setState(p => ({ extents: p.extents.concat([x]), pPend: null, pTool: null }));
+      const inside = this.treibenInBox(x);
+      this.flash('Ausschnitt angelegt · ' + (inside.length ? inside.map(t => t.nr + '.').join(' ') + ' Treiben enthalten' : 'noch ohne Treiben'));
+      this.applyExtent(x);
+    }
+  };
+
+  splitField(a, b) {
+    const s = this.state;
+    const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const target = s.fieldData.find(f => this.inPoly(mid, this.parse(f.points)));
+    if (!target) { this.setState({ pPend: null }); this.flash('Keine Fläche getroffen — Trennlinie muss durch einen Schlag laufen.'); return; }
+    const halves = this.cut(this.parse(target.points), a, b);
+    if (!halves) { this.setState({ pPend: null }); this.flash('Trennlinie schneidet die Fläche nicht — beide Punkte außerhalb setzen.'); return; }
+    const base = target.name.replace(/ [AB]$/, '');
+    const parts = halves.map((h, i) => Object.assign({}, target, {
+      id: 'f' + Date.now() + i, points: this.toStr(h), name: base + ' ' + (i === 0 ? 'A' : 'B')
+    }));
+    this.setState(p => ({
+      fieldData: p.fieldData.filter(f => f.id !== target.id).concat(parts),
+      pPend: null, pTool: null
+    }));
+    this.flash(base + ' geteilt · ' + this.fmt(this.ha(halves[0]), 1) + ' ha + ' + this.fmt(this.ha(halves[1]), 1) + ' ha');
+  }
+
+  jagd() { return this.state.jagden.find(j => j.id === this.state.selJagd) || this.state.jagden[0]; }
+  treibenOf(jagdId) { return this.state.treiben.filter(t => t.jagd === jagdId).sort((a, b) => a.nr - b.nr); }
+  treibenName(id) { const t = this.state.treiben.find(x => x.id === id); return t ? t.nr + '. ' + t.name : '—'; }
+  treibenInBox(box) {
+    return this.treibenOf(box.jagd).filter(t =>
+      this.state.posts.some(p => p.treiben === t.id && p.x >= box.x1 && p.x <= box.x2 && p.y >= box.y1 && p.y <= box.y2));
+  }
+  applyExtent(x) {
+    const w = x.x2 - x.x1, h = x.y2 - x.y1;
+    const zoom = Math.max(0.6, Math.min(2.4, Math.min(392 / w, 430 / h)));
+    const cx = (x.x1 + x.x2) / 2, cy = (x.y1 + x.y2) / 2;
+    this.setState({
+      pZoom: zoom, pView: x.id,
+      pPan: { x: 206 - 200 - (cx - 200) * zoom, y: 215 - 260 - (cy - 260) * zoom }
+    });
+  }
+
+  // ── Büchsenlicht ────────────────────────────────────
+  bTz(d) {
+    const s = new Date(d.toLocaleString('en-US', { timeZone: 'Europe/Berlin' }));
+    const u = new Date(d.toLocaleString('en-US', { timeZone: 'UTC' }));
+    return Math.round((s - u) / 3600000);
+  }
+  bHour(d) { const off = this.bTz(d); const t = new Date(d.getTime() + off * 3600000); return t.getUTCHours() + t.getUTCMinutes() / 60 + t.getUTCSeconds() / 3600; }
+  bClock(d) { return d ? d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Berlin' }) : '—'; }
+
+  light() {
+    const s = this.state;
+    const lat = 52.62, lng = 9.21; // Revier Eichenkamp, Niedersachsen
+    const mode = this.props.buechsenlicht ?? 'daemmerung';
+    const base = new Date(Date.now() + (s.dayOff || 0) * DAYMS);
+
+    const sun = sunEvent(base, lat, lng, -0.833);
+    const civ = sunEvent(base, lat, lng, -6);
+    const off = mode === 'sa60' ? 60 : mode === 'sa30' ? 30 : 0;
+    const blS = mode === 'daemmerung' ? civ.rise : new Date(sun.rise.getTime() - off * 60000);
+    const blE = mode === 'daemmerung' ? civ.set : new Date(sun.set.getTime() + off * 60000);
+
+    // Berliner Mitternacht des Zieltages
+    const tzo = this.bTz(base) * 3600000;
+    const mid = new Date(Math.floor((base.getTime() + tzo) / DAYMS) * DAYMS - tzo);
+
+    let mRise = null, mSet = null, maxAlt = -90, prev = moonAlt(mid, lat, lng), upDark = 0;
+    const blSh = this.bHour(blS), blEh = this.bHour(blE);
+    for (let i = 1; i <= 96; i++) {
+      const t = new Date(mid.getTime() + i * 900000);
+      const a = moonAlt(t, lat, lng);
+      const deg = a / RAD;
+      if (deg > maxAlt) maxAlt = deg;
+      if (prev < 0 && a >= 0 && !mRise) mRise = t;
+      if (prev >= 0 && a < 0 && !mSet) mSet = t;
+      if (a > 5 * RAD) { const h = this.bHour(t); if (h < blSh || h > blEh) upDark += 0.25; }
+      prev = a;
+    }
+
+    const dS = toDays(base), sc = sunCoords(dS), mc = moonCoords(dS);
+    const phi = Math.acos(clamp1(Math.sin(sc.dec) * Math.sin(mc.dec) + Math.cos(sc.dec) * Math.cos(mc.dec) * Math.cos(sc.ra - mc.ra)));
+    const inc = Math.atan2(SDIST * Math.sin(phi), mc.dist - SDIST * Math.cos(phi));
+    const ang = Math.atan2(Math.cos(sc.dec) * Math.sin(sc.ra - mc.ra), Math.sin(sc.dec) * Math.cos(mc.dec) - Math.cos(sc.dec) * Math.sin(mc.dec) * Math.cos(sc.ra - mc.ra));
+    const frac = (1 + Math.cos(inc)) / 2;
+    const ph = 0.5 + 0.5 * inc * (ang < 0 ? -1 : 1) / Math.PI;
+    const waxing = ph < 0.5;
+    const phaseName = frac > 0.97 ? 'Vollmond' : frac < 0.04 ? 'Neumond'
+      : Math.abs(frac - 0.5) < 0.06 ? (waxing ? 'erstes Viertel' : 'letztes Viertel')
+      : (waxing ? 'zunehmend' : 'abnehmend');
+    const litPct = Math.round(frac * 100);
+
+    const band = (x1, x2, col, extra) => ({ st: 'position:absolute;top:0;bottom:0;left:' + (x1 / 24 * 100) + '%;width:' + ((x2 - x1) / 24 * 100) + '%;background:' + col + (extra || '') });
+    const srh = this.bHour(sun.rise), ssh = this.bHour(sun.set);
+    const NIGHT = '#23231c', TWI = 'color-mix(in oklab, var(--gold) 55%, var(--surf))', DAY = 'var(--m-grass)';
+    const blBands = [
+      band(0, blSh, NIGHT), band(blSh, srh, TWI), band(srh, ssh, DAY),
+      band(ssh, blEh, TWI), band(blEh, 24, NIGHT)
+    ];
+
+    const mrh = mRise ? this.bHour(mRise) : null, msh = mSet ? this.bHour(mSet) : null;
+    const mBand = (a, b) => ({ st: 'position:absolute;bottom:0;height:7px;left:' + (a / 24 * 100) + '%;width:' + ((b - a) / 24 * 100) + '%;background:var(--gold);opacity:' + (0.35 + 0.65 * frac) });
+    let blMoonBands = [];
+    if (mrh !== null && msh !== null) blMoonBands = mrh < msh ? [mBand(mrh, msh)] : [mBand(0, msh), mBand(mrh, 24)];
+    else if (mrh !== null) blMoonBands = [mBand(mrh, 24)];
+    else if (msh !== null) blMoonBands = [mBand(0, msh)];
+    else if (maxAlt > 0) blMoonBands = [mBand(0, 24)];
+
+    const nowH = this.bHour(new Date());
+    const verdict = upDark < 1.5 || frac < 0.15
+      ? 'Dunkle Nacht — nach ' + this.bClock(blE) + ' trägt nur noch Kunstlicht. Wild bewegt sich früher, Ansitz zeitig besetzen.'
+      : frac > 0.65 && upDark > 4
+      ? 'Helle Nacht: Mond zu ' + litPct + ' %, ' + Math.round(upDark) + ' h über dem Horizont. Gutes Licht auf Schwarzwild an der Kirrung, Wild aber wachsam und offene Flächen werden gemieden.'
+      : 'Mond zu ' + litPct + ' % (' + phaseName + '), ' + Math.round(upDark) + ' h in der Dunkelheit über dem Horizont — brauchbares Restlicht an offenen Schlägen.';
+
+    return {
+      blDate: base.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Berlin' }),
+      blPlace: 'Revier Eichenkamp · 52,62° N 9,21° O',
+      blStart: this.bClock(blS), blEnd: this.bClock(blE),
+      sunrise: this.bClock(sun.rise), sunset: this.bClock(sun.set),
+      blBands, blMoonBands,
+      blShowNow: (s.dayOff || 0) === 0,
+      blNowSt: 'position:absolute;top:0;bottom:0;left:' + (nowH / 24 * 100) + '%;width:2px;background:var(--accent)',
+      blLegend: [
+        { label: 'Nacht', sw: 'width:12px;height:8px;background:' + NIGHT },
+        { label: 'Büchsenlicht', sw: 'width:12px;height:8px;background:' + TWI },
+        { label: 'Tag', sw: 'width:12px;height:8px;background:' + DAY },
+        { label: 'Mond über Horizont', sw: 'width:12px;height:5px;background:var(--gold)' }
+      ],
+      moonLit: litPct + ' %', moonPhase: phaseName,
+      moonRise: this.bClock(mRise), moonSet: this.bClock(mSet),
+      moonHigh: maxAlt > 0 ? 'max ' + Math.round(maxAlt) + '° hoch' : 'bleibt unter Horizont',
+      moonAge: Math.round(ph * 29.53) + '. Mondtag',
+      moonVerdict: verdict,
+      nightBan: this.bClock(new Date(sun.set.getTime() + 90 * 60000)) + ' – ' + this.bClock(new Date(sun.rise.getTime() - 90 * 60000)),
+      blRule: mode === 'daemmerung'
+        ? 'Büchsenlicht = bürgerliche Dämmerung (Sonne 6° unter dem Horizont), für den Revierstandort gerechnet. Nachtjagdverbot: 1,5 h nach Sonnenuntergang bis 1,5 h vor Sonnenaufgang, ausgenommen Schwarzwild und Raubwild.'
+        : 'Büchsenlicht = Sonnenaufgang/-untergang ± ' + off + ' min (in Einstellungen umstellbar). Nachtjagdverbot: 1,5 h nach Sonnenuntergang bis 1,5 h vor Sonnenaufgang, ausgenommen Schwarzwild und Raubwild.',
+      blSub: 'Büchsenlicht ' + this.bClock(blS) + ' – ' + this.bClock(blE),
+      dayPrev: () => this.setState(p => ({ dayOff: (p.dayOff || 0) - 1 })),
+      dayNext: () => this.setState(p => ({ dayOff: (p.dayOff || 0) + 1 }))
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const cur = s.markers.find(m => m.id === s.sel);
+    const ringed = (m) => m.type === 'ansitz' && !!m.dists && m.dists.length > 0;
+    const act = s.revierData.find(r => r.id === s.activeRevier) || s.revierData[0];
+    const visIds = s.revierData.filter(r => r.visible || r.id === act.id).map(r => r.id);
+    const inView = (m) => visIds.indexOf(m.revier || 'r1') >= 0;
+    const measFrom = s.measFrom || (cur ? { x: cur.x, y: cur.y } : { x: 200, y: 260 });
+    const measFromName = s.measFrom ? 'gesetztem Punkt' : (cur ? cur.name : 'eigenem Standort');
+    const mFrom = measFrom, mTo = s.measTo;
+    const measM = mTo ? Math.round(Math.hypot(mTo.x - mFrom.x, mTo.y - mFrom.y) * M_PER_PX / 5) * 5 : 0;
+    const measDir = mTo ? this.compass(mTo.x - mFrom.x, mTo.y - mFrom.y) : '';
+    const fld = s.fieldData.find(f => f.id === s.selField);
+    const post = s.posts.find(p => p.id === s.selPost);
+    const jagd = this.jagd();
+    const isDrueck = jagd.art === 'Drückjagd';
+    const myTreiben = this.treibenOf(jagd.id);
+    const treibenIds = myTreiben.map(t => t.id);
+    const sym = s.zeichen === 'symbol';
+
+    const navItems = [
+      ['karte', 'Karte', 'M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z'],
+      ['planung', 'Planung', 'M4 4v16h16M8 16l4-6 3 4 4-7'],
+      ['tagebuch', 'Tagebuch', 'M4 3h13a2 2 0 012 2v14a2 2 0 01-2 2H4zM8 3v18M11 9h6M11 13h6'],
+      ['zeiten', 'Zeiten', 'M4 5h16v16H4zM8 3v4M16 3v4M4 11h16'],
+      ['ansitz', 'Ansitz', 'M3 8h11a3 3 0 100-6 3 3 0 00-3 3M3 16h7a3 3 0 110 6 3 3 0 01-3-3M3 12h15'],
+      ['mehr', 'Mehr', 'M12 9a3 3 0 100 6 3 3 0 000-6M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2']
+    ];
+
+    const MON = ['', 'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+    const now = [8, 28];
+    const inRange = (a, b) => {
+      const v = now[0] * 100 + now[1], from = a[0] * 100 + a[1], to = b[0] * 100 + b[1];
+      return from <= to ? v >= from && v <= to : v >= from || v <= to;
+    };
+    const zeitRow = ([art, klasse, a, b]) => {
+      const geschuetzt = a[0] === 0;
+      const ganz = !geschuetzt && a[0] === 1 && a[1] === 1 && b[0] === 12 && b[1] === 31;
+      const open = !geschuetzt && (ganz || inRange(a, b));
+      return {
+        art, klasse,
+        range: geschuetzt ? 'keine Jagdzeit' : ganz ? 'ganzjährig' : a[1] + '. ' + MON[a[0]] + ' – ' + b[1] + '. ' + MON[b[0]],
+        status: geschuetzt ? 'GESCHÜTZT' : open ? 'JAGDZEIT' : 'SCHONZEIT',
+        st: this.badge(open)
+      };
+    };
+
+    const ansitzWind = [
+      ['Kanzel Eichenschlag', 'Gut', 'Anstellung NO — Wind SW trägt ab. Weizen abgeerntet, freies Schussfeld.'],
+      ['Bodensitz Bachwiese', 'Gut', 'Wind SW steht richtig, Aufstieg trocken über Hangweg.'],
+      ['Kanzel Rapskante', 'Mäßig', 'Wind quer, Raps hoch — nur Ansprechen auf der Gasse möglich.'],
+      ['Leiter Südfeld', 'Schlecht', 'Wind trägt direkt in die Fläche. Zugang über Feldweg verwittert.']
+    ];
+
+    const dl = [
+      ['Revier Eichenkamp · Topo', '148 MB · aktuell (12.08.2026)', 'AKTUELL', false],
+      ['Revier Eichenkamp · Orthofoto', '612 MB · Update verfügbar', 'UPDATE', true],
+      ['Revier Ostkamp · Topo + Ortho', '470 MB · nicht geladen', 'LADEN', true],
+      ['Höhenlinien DGM1 Niedersachsen', '96 MB · aktuell', 'AKTUELL', false]
+    ];
+
+    const pinStyle = (accent, active) => ({
+      position: 'absolute', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: accent ? 'var(--accent)' : 'var(--surf)', color: accent ? '#fff' : 'var(--ink)',
+      border: '2px solid ' + (active ? 'var(--accent)' : 'var(--line)'),
+      outline: active ? '3px solid var(--accent)' : 'none', outlineOffset: 2,
+      cursor: 'pointer', boxSizing: 'border-box', zIndex: 5
+    });
+
+    const arrowGeom = (a) => {
+      const dx = a.x2 - a.x1, dy = a.y2 - a.y1, len = Math.hypot(dx, dy) || 1;
+      const ux = dx / len, uy = dy / len, bx = a.x2 - ux * 13, by = a.y2 - uy * 13;
+      return {
+        line: 'M' + a.x1 + ' ' + a.y1 + ' L' + bx.toFixed(1) + ' ' + by.toFixed(1),
+        head: [a.x2 + ',' + a.y2, (bx - uy * 5.5).toFixed(1) + ',' + (by + ux * 5.5).toFixed(1), (bx + uy * 5.5).toFixed(1) + ',' + (by - ux * 5.5).toFixed(1)].join(' ')
+      };
+    };
+
+    const L = this.light();
+    return Object.assign({}, L, {
+      devW: 412, devH: 812,
+      showAds: !(this.props.werbefrei ?? false),
+      adState: (this.props.werbefrei ?? false) ? 'Werbefrei aktiv — alle drei Plätze sind ausgeblendet.' : 'Plätze aktiv. Mit der Vollversion (werbefrei) fallen sie weg.',
+      night: s.night,
+      nightAttr: s.night ? '1' : '0',
+      nightLabel: s.night ? 'TAG' : 'ROT',
+      mapStyle: s.mapStyle,
+      toggleNight: () => this.setState(p => ({ night: !p.night })),
+      today: '28.08.2026',
+
+      headerTitle: {
+        karte: act.name, planung: jagd.art + ' ' + jagd.datum, tagebuch: 'Jagdtagebuch',
+        zeiten: 'Jagdzeiten', ansitz: 'Ansitz-Planung', mehr: 'Einstellungen'
+      }[s.screen],
+      headerSub: {
+        karte: this.fmt(this.ha(act.points), 0) + ' ha · ' + (act.kind === 'eigen' ? 'Eigenjagd' : act.kind === 'begeh' ? 'Begehungsschein' : 'Pacht') + ' · ' + s.markers.filter(m => (m.revier || 'r1') === act.id).length + ' Marker',
+        planung: myTreiben.length + (isDrueck ? ' Gebiete · ' : ' Treiben · ') + s.posts.filter(p => treibenIds.indexOf(p.treiben) >= 0).length + (isDrueck ? ' Stände' : ' Schützen'),
+        tagebuch: s.journal.length + ' Einträge · Jagdjahr 2026/27',
+        zeiten: 'Niedersachsen · 4 Kategorien',
+        ansitz: L.blSub,
+        mehr: 'Offline · Recht · Bedienung'
+      }[s.screen],
+
+      isKarte: s.screen === 'karte', isPlanung: s.screen === 'planung', isTagebuch: s.screen === 'tagebuch',
+      isZeiten: s.screen === 'zeiten', isAnsitz: s.screen === 'ansitz', isMehr: s.screen === 'mehr',
+
+      nav: navItems.map(([id, label, d]) => ({
+        label, d, onClick: () => this.setState({ screen: id, sheet: null, tool: null, radial: false, aim: null, pTool: null, pPend: null }),
+        st: {
+          flex: 1, minHeight: 62, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 3, border: 'none', borderTop: '4px solid ' + (s.screen === id ? 'var(--accent)' : 'transparent'),
+          background: 'transparent', color: s.screen === id ? 'var(--ink)' : 'var(--muted)',
+          fontWeight: s.screen === id ? 600 : 400, cursor: 'pointer', padding: 0
+        }
+      })),
+
+      // ── Revierkarte ─────────────────────────────────
+      mapWrapStyle: { position: 'absolute', left: 0, top: 0, width: 400, height: 520, transform: 'translate(' + s.pan.x + 'px,' + s.pan.y + 'px) scale(' + s.zoom + ')', transformOrigin: '200px 260px' },
+      mapMeta: this.fmt(s.zoom * 100, 0) + ' % · ' + M_PER_PX + ' m/px · ' + (s.mapStyle === 'topo' ? 'OSM + DGM1' : 'DOP20 LGLN'),
+      zoomIn: () => this.setState(p => ({ zoom: Math.min(2.4, p.zoom + 0.25) })),
+      zoomOut: () => this.setState(p => ({ zoom: Math.max(0.6, p.zoom - 0.25) })),
+      setTopo: () => this.setState({ mapStyle: 'topo' }),
+      setSat: () => this.setState({ mapStyle: 'sat' }),
+      topoBtn: this.chip(s.mapStyle === 'topo', { minHeight: 44, fontSize: 13, borderWidth: 0, borderRight: '2px solid var(--line)' }),
+      satBtn: this.chip(s.mapStyle === 'sat', { minHeight: 44, fontSize: 13, borderWidth: 0 }),
+      onPanStart: this.panStart, onPanMove: this.panMove, onPanEnd: this.panEnd, onMapClick: this.mapClick,
+
+      fields: s.fieldData.map(f => ({
+        points: f.points, stroke: s.selField === f.id ? 'var(--accent)' : 'var(--m-stroke)',
+        sw: s.selField === f.id ? 3 : 1,
+        onClick: (e) => { e.stopPropagation(); this.setState({ selField: f.id, sheet: 'field', sel: null }); }
+      })),
+      fieldLabels: s.fieldData.map(f => {
+        const p = this.parse(f.points);
+        const cx = p.reduce((a, q) => a + q[0], 0) / p.length;
+        const maxY = p.reduce((a, q) => Math.max(a, q[1]), 0);
+        const w = f.crop.length * 5.6 + 8, h = 15;
+        let top = maxY + 4;
+        for (let pass = 0; pass < 6; pass++) {
+          const hit = s.markers.some(m => Math.abs(m.x - cx) < 15 + w / 2 && m.y - 15 < top + h && m.y + 15 > top);
+          if (!hit) break;
+          top += 18;
+        }
+        return {
+          text: f.crop,
+          st: {
+            position: 'absolute', left: Math.round(cx - w / 2), top: Math.round(top), width: Math.round(w),
+            textAlign: 'center', pointerEvents: 'none', fontSize: 9, fontWeight: 600, lineHeight: '15px',
+            letterSpacing: '.05em', color: 'var(--m-label)', whiteSpace: 'nowrap', background: 'var(--m-grass)', zIndex: 1
+          }
+        };
+      }),
+      reviere: s.revierData.filter(r => r.visible || r.id === act.id).map(r => ({
+        points: r.points, stroke: r.id === act.id ? 'var(--accent)' : 'var(--m-label)',
+        sw: r.id === act.id ? 3 : 2, dash: r.kind === 'eigen' ? '0' : '10 6'
+      })),
+
+      rings: s.markers.filter(m => inView(m) && ringed(m)).flatMap(m => {
+        const act = s.sel === m.id;
+        return m.dists.slice().sort((a, b) => b - a).map(d => {
+          const r = d / M_PER_PX;
+          return { st: {
+            position: 'absolute', left: m.x - r, top: m.y - r, width: r * 2, height: r * 2,
+            borderRadius: '50%', border: (act ? 2 : 1) + 'px dashed var(--gold)', boxSizing: 'border-box',
+            background: 'color-mix(in oklab, var(--gold) ' + (act ? 14 : 7) + '%, transparent)',
+            opacity: act ? 1 : 0.75, pointerEvents: 'none'
+          } };
+        });
+      }),
+
+      ringLabels: s.markers.filter(m => ringed(m) && s.sel === m.id).flatMap(m => {
+        const ds = m.dists.slice().sort((a, b) => b - a);
+        const top0 = m.y - Math.max.apply(null, m.dists) / M_PER_PX;
+        return ds.map((d, i) => ({
+          label: d + ' m', st: {
+            position: 'absolute', left: m.x, top: top0 - 4 - i * (20 / s.zoom),
+            transform: 'translate(-50%,-100%) scale(' + (1 / s.zoom) + ')', transformOrigin: 'bottom center',
+            fontSize: 10, fontWeight: 600, letterSpacing: '.04em', lineHeight: '15px',
+            color: 'var(--m-label)', background: 'var(--m-road)', border: '1px solid var(--gold)',
+            padding: '0 5px', pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 4
+          }
+        }));
+      }),
+
+      pins: s.markers.filter(m => inView(m) && !ringed(m)).map(m => {
+        const t = this.type(m.type);
+        const active = s.sel === m.id;
+        return {
+          code: t.code, d: ICON[t.id], useSym: sym, useCode: !sym,
+          onClick: (e) => { e.stopPropagation(); this.setState({ sel: m.id, sheet: 'marker', selField: null }); },
+          st: Object.assign(pinStyle(t.accent, active), { left: m.x - 15, top: m.y - 15 })
+        };
+      }),
+
+      ringDots: s.markers.filter(m => inView(m) && ringed(m)).map(m => {
+        const active = s.sel === m.id;
+        return {
+          onClick: (e) => { e.stopPropagation(); this.setState({ sel: m.id, sheet: 'marker', selField: null }); },
+          st: {
+            position: 'absolute', left: m.x, top: m.y, width: 26, height: 26, marginLeft: -13, marginTop: -13,
+            transform: 'scale(' + (1 / s.zoom) + ')', boxSizing: 'border-box', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3
+          },
+          inner: {
+            width: active ? 11 : 8, height: active ? 11 : 8, borderRadius: '50%',
+            background: active ? 'var(--accent)' : 'var(--surf)',
+            border: '2px solid ' + (active ? 'var(--accent)' : 'var(--line)'), boxSizing: 'border-box'
+          }
+        };
+      }),
+
+      isDrawing: !!s.drawing,
+      drawPoints: s.drawing ? s.drawing.map(p => p.join(',')).join(' ') : '',
+      drawVertices: (s.drawing || []).map(p => ({ st: { position: 'absolute', left: p[0] - 5, top: p[1] - 5, width: 10, height: 10, background: 'var(--accent)' } })),
+      drawHint: s.drawing && s.drawing.length > 2
+        ? s.drawing.length + ' Punkte · ' + this.fmt(this.ha(s.drawing), 0) + ' ha umschlossen'
+        : 'Grenzpunkte antippen — mindestens drei. Später auch per GPS-Track ablaufbar.',
+      startDraw: () => this.setState({ drawing: [], sheet: null, tool: null, radial: false, aim: null, screen: 'karte' }),
+      undoVertex: () => this.setState(p => ({ drawing: p.drawing.slice(0, -1) })),
+      cancelDraw: () => this.setState({ drawing: null }),
+      finishDraw: () => {
+        if (!s.drawing || s.drawing.length < 3) { this.flash('Mindestens drei Grenzpunkte nötig.'); return; }
+        this.setState({ pendingRevier: s.drawing, drawing: null, sheet: 'naming', rName: 'Revier Neu' });
+      },
+      rName: s.rName, onRName: (e) => this.setState({ rName: e.target.value }),
+      rHa: s.pendingRevier ? this.fmt(this.ha(s.pendingRevier), 1) + ' ha' : '—',
+      saveRevier: () => {
+        const pts = s.pendingRevier.map(p => p.join(',')).join(' ');
+        const rid = 'r' + Date.now();
+        this.setState(p => ({
+          revierData: p.revierData.concat([{ id: rid, name: p.rName || 'Revier Neu', points: pts, visible: true, kind: 'pacht' }]),
+          activeRevier: rid, pendingRevier: null, sheet: null
+        }));
+        this.flash('Revier angelegt · ' + this.fmt(this.ha(s.pendingRevier), 0) + ' ha');
+      },
+
+      isMeasuring: !!s.measure && !!mTo,
+      measOrigin: mFrom, measTarget: mTo,
+      measLine: mTo ? { x1: mFrom.x, y1: mFrom.y, x2: mTo.x, y2: mTo.y } : null,
+      measX1: mFrom.x, measY1: mFrom.y, measX2: mTo ? mTo.x : mFrom.x, measY2: mTo ? mTo.y : mFrom.y,
+      measDotSt: {
+        position: 'absolute', left: mFrom.x, top: mFrom.y, width: 20, height: 20, marginLeft: -10, marginTop: -10,
+        transform: 'scale(' + (1 / s.zoom) + ')', borderRadius: '50%', border: '2px solid var(--accent)',
+        background: 'color-mix(in oklab, var(--accent) 22%, transparent)', boxSizing: 'border-box', pointerEvents: 'none', zIndex: 5
+      },
+      measBadgeSt: mTo ? {
+        position: 'absolute', left: mTo.x, top: mTo.y - 10 / s.zoom,
+        transform: 'translate(-50%,-100%) scale(' + (1 / s.zoom) + ')', transformOrigin: 'bottom center',
+        background: 'var(--accent)', color: 'var(--surf)', fontSize: 12, fontWeight: 600,
+        letterSpacing: '.03em', lineHeight: '20px', padding: '0 8px', whiteSpace: 'nowrap',
+        pointerEvents: 'none', zIndex: 6, fontVariantNumeric: 'tabular-nums'
+      } : {},
+      measBadge: measM + ' m · ' + measDir,
+      measToggle: () => this.setState(p => ({
+        measure: !p.measure, tool: null, radial: false, aim: null,
+        measFrom: !p.measure ? null : p.measFrom, measTo: null
+      })),
+      measBtnSt: {
+        border: '2px solid ' + (s.measure ? 'var(--accent)' : 'var(--line)'),
+        background: s.measure ? 'var(--accent)' : 'transparent',
+        color: s.measure ? 'var(--surf)' : 'var(--ink)',
+        fontSize: 11, fontWeight: 600, letterSpacing: '.06em', padding: '8px 10px', cursor: 'pointer'
+      },
+      measHint: s.measure
+        ? (mTo ? measM + ' m · ' + measDir + ' · ab ' + measFromName : 'Finger über die Karte ziehen — Entfernung ab ' + measFromName)
+        : '',
+
+      showToolbar: s.ctrl === 'werkzeug' && !s.drawing && !s.aim,
+      showFab: s.ctrl === 'zielkreuz' && !s.drawing,
+      isAiming: !!s.aim,
+      toolHint: s.measure ? (s.measTo ? measM + ' m · ' + measDir + ' · ab ' + measFromName : 'Über die Karte ziehen — ab ' + measFromName + ', Tippen setzt Startpunkt')
+        : s.tool ? this.type(s.tool).label + ' — Stelle auf der Karte antippen' : 'Werkzeug wählen, dann Karte antippen',
+      tools: TYPES.map(t => ({
+        code: t.code, short: t.short, d: ICON[t.id], useSym: sym, useCode: !sym,
+        onClick: () => this.setState(p => ({ tool: p.tool === t.id ? null : t.id })),
+        st: {
+          minWidth: 62, minHeight: 56, flex: 'none', display: 'flex', flexDirection: 'column',
+          alignItems: 'flex-start', justifyContent: 'center', gap: 3, padding: '0 10px',
+          border: '2px solid ' + (s.tool === t.id ? 'var(--accent)' : 'var(--line)'),
+          background: s.tool === t.id ? 'var(--accent)' : 'transparent',
+          color: s.tool === t.id ? '#fff' : 'var(--ink)', cursor: 'pointer'
+        }
+      })),
+      toggleRadial: () => this.setState(p => ({ radial: !p.radial, aim: null })),
+      fabLabel: s.radial ? '×' : '+',
+      fabStyle: { width: 64, height: 64, border: '2px solid var(--accent)', background: 'var(--accent)', color: '#fff', fontSize: 30, fontWeight: 400, lineHeight: 1, cursor: 'pointer' },
+      radialTools: s.radial ? TYPES.map(t => ({
+        short: t.short, d: ICON[t.id],
+        onClick: () => this.setState({ aim: t.id, radial: false }),
+        st: { display: 'flex', alignItems: 'center', gap: 10, minHeight: 46, padding: '0 12px', border: '2px solid var(--line)', background: 'var(--surf)', color: 'var(--ink)', cursor: 'pointer' }
+      })) : [],
+      aimType: s.aim ? this.type(s.aim).label : '',
+      cancelAim: () => this.setState({ aim: null }),
+      placeAtCenter: () => {
+        const x = Math.round((206 - s.pan.x - 200 * (1 - s.zoom)) / s.zoom);
+        const y = Math.round((260 - s.pan.y - 260 * (1 - s.zoom)) / s.zoom);
+        this.addMarker(s.aim, x, y);
+      },
+
+      hasToast: !!s.toast, toast: s.toast,
+      undoLast: () => this.setState(p => ({ markers: p.lastAdded ? p.markers.filter(m => m.id !== p.lastAdded) : p.markers, toast: '', sheet: null, sel: null })),
+      openReviere: () => this.setState({ sheet: 'reviere' }),
+      openLegend: () => this.setState({ sheet: 'legend' }),
+
+      // ── Jagdplanung ─────────────────────────────────
+      jagdChips: s.jagden.map(j => ({
+        art: j.art, datum: j.datum,
+        onClick: () => {
+          const first = this.treibenOf(j.id)[0];
+          this.setState({ selJagd: j.id, selTreiben: first ? first.id : null, pTool: null, pPend: null, pView: 'all', pPan: { x: 6, y: 30 }, pZoom: 0.9 });
+        },
+        st: {
+          minHeight: 52, flex: 'none', display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+          justifyContent: 'center', gap: 2, padding: '0 14px',
+          border: '2px solid ' + (s.selJagd === j.id ? 'var(--accent)' : 'var(--line)'),
+          background: s.selJagd === j.id ? 'var(--accent)' : 'transparent',
+          color: s.selJagd === j.id ? '#fff' : 'var(--ink)', cursor: 'pointer'
+        }
+      })),
+      newJagd: () => this.setState({ sheet: 'newjagd' }),
+
+      pMapWrapStyle: { position: 'absolute', left: 0, top: 0, width: 400, height: 520, transform: 'translate(' + s.pPan.x + 'px,' + s.pPan.y + 'px) scale(' + s.pZoom + ')', transformOrigin: '200px 260px' },
+      onPPanStart: this.pPanStart, onPPanMove: this.pPanMove, onPPanEnd: this.pPanEnd, onPMapClick: this.pMapClick,
+      pZoomIn: () => this.setState(p => ({ pZoom: Math.min(2.4, p.pZoom + 0.25) })),
+      pZoomOut: () => this.setState(p => ({ pZoom: Math.max(0.5, p.pZoom - 0.25) })),
+
+      pFields: s.fieldData.map(f => {
+        const assigned = myTreiben.find(t => t.flaeche === f.name || f.name.indexOf(t.flaeche) === 0);
+        const active = assigned && assigned.id === s.selTreiben;
+        return {
+          points: f.points, fill: 'var(--m-field)',
+          stroke: active ? 'var(--accent)' : assigned ? 'var(--m-label)' : 'var(--m-stroke)',
+          sw: active ? 3 : assigned ? 2 : 1, dash: assigned ? '0' : '4 4',
+          onClick: (e) => {
+            e.stopPropagation();
+            if (s.pTool) return;
+            const t = assigned;
+            if (t) this.setState({ selTreiben: t.id });
+            else this.flash(f.name + ' · ' + this.fmt(this.ha(f.points), 1) + ' ha — noch keinem Treiben zugeordnet');
+          }
+        };
+      }),
+
+      pArrows: s.arrows.filter(a => treibenIds.indexOf(a.treiben) >= 0).map(a => {
+        const g = arrowGeom(a);
+        const active = a.treiben === s.selTreiben;
+        return { line: g.line, head: g.head, col: active ? 'var(--accent)' : 'var(--m-label)', w: active ? 4 : 2.5, op: active ? 1 : 0.5 };
+      }),
+
+      pExtentBoxes: s.extents.filter(x => x.jagd === s.selJagd).map(x => ({
+        x: x.x1, y: x.y1, w: x.x2 - x.x1, h: x.y2 - x.y1,
+        col: s.pView === x.id ? 'var(--accent)' : 'var(--m-label)'
+      })),
+
+      pHasPending: !!s.pPend, pPendX: s.pPend ? s.pPend.x : 0, pPendY: s.pPend ? s.pPend.y : 0,
+
+      pBasePins: s.markers.filter(m => m.type === 'ansitz' || m.type === 'kirrung').map(m => ({
+        d: ICON[m.type],
+        st: {
+          position: 'absolute', left: m.x - 11, top: m.y - 11, width: 22, height: 22,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+          border: '1.5px solid var(--m-label)', color: 'var(--m-label)', background: 'var(--surf)',
+          opacity: 0.55, boxSizing: 'border-box'
+        }
+      })),
+
+      pPosts: s.posts.filter(p => treibenIds.indexOf(p.treiben) >= 0).map(p => {
+        const active = p.treiben === s.selTreiben;
+        return {
+          nr: p.nr,
+          onClick: (e) => { e.stopPropagation(); this.setState({ selPost: p.id, sheet: 'post' }); },
+          st: {
+            position: 'absolute', left: p.x - 14, top: p.y - 14, width: 28, height: 28,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: isDrueck ? 0 : '50%',
+            border: '2px solid ' + (active ? 'var(--accent)' : 'var(--m-label)'),
+            background: active ? 'var(--accent)' : 'var(--surf)', color: active ? '#fff' : 'var(--m-label)',
+            fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', cursor: 'pointer',
+            boxSizing: 'border-box', zIndex: 6, opacity: active ? 1 : 0.75
+          }
+        };
+      }),
+
+      pTreibenLabels: myTreiben.map(t => {
+        const ps = s.posts.filter(p => p.treiben === t.id);
+        if (!ps.length) return null;
+        const cx = ps.reduce((a, p) => a + p.x, 0) / ps.length;
+        const minY = ps.reduce((a, p) => Math.min(a, p.y), 1e9);
+        const active = t.id === s.selTreiben;
+        return {
+          text: t.nr + '. ' + t.name,
+          st: {
+            position: 'absolute', left: Math.round(cx - 60), top: Math.round(minY - 32), width: 120,
+            textAlign: 'center', pointerEvents: 'none', fontSize: 10, fontWeight: 600, letterSpacing: '.04em',
+            padding: '3px 0', color: active ? '#fff' : 'var(--m-label)',
+            background: active ? 'var(--accent)' : 'var(--surf)', opacity: active ? 1 : 0.7, zIndex: 4
+          }
+        };
+      }).filter(Boolean),
+
+      pViews: [{ id: 'all', name: 'Gesamtrevier' }].concat(s.extents.filter(x => x.jagd === s.selJagd)).map(v => {
+        const box = v.id === 'all' ? null : v;
+        const inside = box ? this.treibenInBox(box) : [];
+        return {
+          label: v.id === 'all' ? 'Gesamtrevier' : v.name + (inside.length ? ' · ' + inside.map(t => t.nr).join('+') : ''),
+          onClick: () => box ? this.applyExtent(box) : this.setState({ pView: 'all', pPan: { x: 6, y: 30 }, pZoom: 0.9 }),
+          st: {
+            minHeight: 40, flex: 'none', padding: '0 12px', fontSize: 12, whiteSpace: 'nowrap',
+            fontWeight: s.pView === v.id ? 600 : 400,
+            border: '2px solid ' + (s.pView === v.id ? 'var(--accent)' : 'var(--line)'),
+            background: s.pView === v.id ? 'var(--accent)' : 'var(--surf)',
+            color: s.pView === v.id ? '#fff' : 'var(--ink)', cursor: 'pointer'
+          }
+        };
+      }),
+
+      pTreibenChips: myTreiben.map(t => ({
+        label: t.nr + '. ' + t.name,
+        onClick: () => this.setState({ selTreiben: t.id, pPend: null }),
+        st: {
+          minHeight: 44, flex: 'none', padding: '0 12px', fontSize: 13, whiteSpace: 'nowrap',
+          fontWeight: s.selTreiben === t.id ? 600 : 400,
+          border: '2px solid ' + (s.selTreiben === t.id ? 'var(--accent)' : 'var(--line)'),
+          background: s.selTreiben === t.id ? 'var(--accent)' : 'transparent',
+          color: s.selTreiben === t.id ? '#fff' : 'var(--ink)', cursor: 'pointer'
+        }
+      })),
+
+      pTools: [
+        { id: 'post', label: isDrueck ? 'Stand' : 'Schütze', d: isDrueck ? ICON.stand : ICON.schuetze },
+        { id: 'arrow', label: isDrueck ? 'Schussfeld' : 'Treibrichtung', d: ICON.arrow },
+        { id: 'split', label: 'Fläche teilen', d: ICON.split },
+        { id: 'extent', label: 'Ausschnitt', d: ICON.extent }
+      ].map(t => ({
+        label: t.label, d: t.d,
+        onClick: () => this.setState(p => ({ pTool: p.pTool === t.id ? null : t.id, pPend: null })),
+        st: {
+          minWidth: 76, minHeight: 58, flex: 'none', display: 'flex', flexDirection: 'column',
+          alignItems: 'flex-start', justifyContent: 'center', gap: 4, padding: '0 10px',
+          border: '2px solid ' + (s.pTool === t.id ? 'var(--accent)' : 'var(--line)'),
+          background: s.pTool === t.id ? 'var(--accent)' : 'transparent',
+          color: s.pTool === t.id ? '#fff' : 'var(--ink)', cursor: 'pointer'
+        }
+      })),
+      pHint: !s.pTool
+        ? (isDrueck ? 'Gebiet wählen, dann Werkzeug' : 'Treiben wählen, dann Werkzeug')
+        : s.pTool === 'post' ? (isDrueck ? 'Standort des Standes antippen' : 'Vorstehschützen antippen — Nummer läuft automatisch')
+        : s.pTool === 'arrow' ? (s.pPend ? 'Zielpunkt der Richtung antippen' : 'Startpunkt der Richtung antippen')
+        : s.pTool === 'split' ? (s.pPend ? 'Zweiten Punkt der Trennlinie antippen' : 'Trennlinie: ersten Punkt außerhalb der Fläche antippen')
+        : (s.pPend ? 'Gegenüberliegende Ecke antippen' : 'Erste Ecke des Kartenausschnitts antippen'),
+      pHintCol: s.pTool ? 'var(--accent)' : 'var(--muted)',
+      pCanCancel: !!s.pTool,
+      pCancelTool: () => this.setState({ pTool: null, pPend: null }),
+
+      addTreiben: () => {
+        const nr = myTreiben.length + 1;
+        const id = (isDrueck ? 'd' : 't') + Date.now();
+        this.setState(p => ({
+          treiben: p.treiben.concat([{ id, jagd: jagd.id, nr, name: (isDrueck ? 'Gebiet ' : 'Treiben ') + nr, flaeche: '—', zeit: '—' }]),
+          selTreiben: id, sheet: null
+        }));
+        this.flash((isDrueck ? 'Gebiet ' : 'Treiben ') + nr + ' angelegt — Stände setzen');
+      },
+      addTreibenLabel: isDrueck ? 'Gebiet hinzufügen' : 'Treiben hinzufügen',
+      openListe: () => this.setState({ sheet: 'liste' }),
+      exportPlan: () => this.flash('Standkarten + Liste als PDF vorbereitet (Demo)'),
+
+      listeRows: myTreiben.map(t => {
+        const ps = s.posts.filter(p => p.treiben === t.id);
+        const ars = s.arrows.filter(a => a.treiben === t.id);
+        const dir = ars.length ? this.compass(ars.reduce((a, x) => a + (x.x2 - x.x1), 0), ars.reduce((a, x) => a + (x.y2 - x.y1), 0)) : null;
+        const box = s.extents.filter(x => x.jagd === jagd.id).find(x => ps.some(p => p.x >= x.x1 && p.x <= x.x2 && p.y >= x.y1 && p.y <= x.y2));
+        return {
+          nr: t.nr + '.', title: t.name, sub: t.flaeche,
+          zeit: t.zeit, timeSt: this.tag(t.id === s.selTreiben),
+          posts: ps.length + (isDrueck ? ' Stände' : ' Vorstehschützen'),
+          richtung: dir ? (isDrueck ? 'Schussfeld ' : 'Treibrichtung ') + dir : 'Richtung offen',
+          ausschnitt: box ? box.name : 'kein Ausschnitt',
+          st: this.block(t.id === s.selTreiben),
+          onClick: () => this.setState({ selTreiben: t.id, sheet: null })
+        };
+      }),
+      extentRows: s.extents.filter(x => x.jagd === jagd.id).map(x => {
+        const inside = this.treibenInBox(x);
+        return {
+          name: x.name,
+          meta: inside.length ? inside.map(t => t.nr + '. ' + t.name).join(' · ') : 'noch keine Treiben enthalten',
+          st: this.block(s.pView === x.id),
+          onClick: () => { this.applyExtent(x); this.setState({ sheet: null }); }
+        };
+      }),
+
+      postName: post ? post.name : '',
+      postTreiben: post ? this.treibenName(post.treiben) : '',
+      postCoords: post ? this.gps(post.x, post.y) : '',
+      onPostName: (e) => { const v = e.target.value; this.setState(p => ({ posts: p.posts.map(x => x.id === p.selPost ? Object.assign({}, x, { name: v }) : x) })); },
+      deletePost: () => this.setState(p => ({ posts: p.posts.filter(x => x.id !== p.selPost), sheet: null, selPost: null })),
+
+      artOptions: ['Treibjagd', 'Drückjagd'].map(a => ({
+        label: a, st: this.chip(s.njArt === a, { minHeight: 48, flex: 1, fontSize: 14 }),
+        onClick: () => this.setState({ njArt: a })
+      })),
+      njDatum: s.njDatum, onNjDatum: (e) => this.setState({ njDatum: e.target.value }),
+      saveJagd: () => {
+        const id = 'j' + Date.now();
+        this.setState(p => ({
+          jagden: p.jagden.concat([{ id, art: p.njArt, datum: p.njDatum, ort: 'Revier Eichenkamp' }]),
+          selJagd: id, selTreiben: null, sheet: null, pView: 'all'
+        }));
+        this.flash(s.njArt + ' ' + s.njDatum + ' angelegt — Treiben hinzufügen');
+      },
+
+      // ── sheets ──────────────────────────────────────
+      sheetOpen: !!s.sheet,
+      closeSheet: () => this.setState({ sheet: null, pickTarget: false }),
+      sheetIsMarker: s.sheet === 'marker', sheetIsField: s.sheet === 'field',
+      sheetIsReviere: s.sheet === 'reviere', sheetIsLegend: s.sheet === 'legend',
+      sheetIsEntry: s.sheet === 'entry', sheetIsNaming: s.sheet === 'naming',
+      sheetIsListe: s.sheet === 'liste', sheetIsPost: s.sheet === 'post', sheetIsNewJagd: s.sheet === 'newjagd',
+      sheetKicker: {
+        marker: cur ? this.type(cur.type).label : '', field: 'Ackerfläche', reviere: 'Reviere',
+        legend: 'Kartenzeichen', entry: 'Tagebuch', naming: 'Neues Revier',
+        liste: jagd.art + ' · ' + jagd.datum, post: post ? this.treibenName(post.treiben) : '', newjagd: 'Jagdplanung'
+      }[s.sheet] || '',
+      sheetTitle: {
+        marker: cur ? cur.name : '', field: fld ? fld.name : '', reviere: 'Reviere verwalten',
+        legend: 'Was liegt auf der Karte', entry: 'Eintrag anlegen', naming: 'Grenze übernehmen',
+        liste: isDrueck ? 'Stände und Gebiete' : 'Treiben in Reihenfolge',
+        post: post ? (isDrueck ? 'Stand ' : 'Vorstehschütze ') + post.nr : '', newjagd: 'Neue Jagd anlegen'
+      }[s.sheet] || '',
+
+      mIsAnsitz: !!cur && cur.type === 'ansitz',
+      mDistSummary: (() => {
+        const ds = (cur && cur.dists) || [];
+        if (!ds.length) return 'keine Ringe';
+        return ds.length === 1 ? 'ein Ring' : ds.length + ' Ringe · max ' + Math.max.apply(null, ds) + ' m';
+      })(),
+      mDistOptions: [50, 80, 100, 150, 200].map(d => {
+        const on = !!cur && (cur.dists || []).indexOf(d) >= 0;
+        return {
+          label: d + ' m', st: this.chip(on, { minHeight: 48, fontSize: 14, flex: 'none', paddingLeft: 14, paddingRight: 14 }),
+          onClick: () => this.setState(p => ({
+            markers: p.markers.map(m => m.id !== p.sel ? m : Object.assign({}, m, {
+              dists: on ? (m.dists || []).filter(x => x !== d) : (m.dists || []).concat([d]).sort((a, b) => a - b)
+            }))
+          }))
+        };
+      }),
+      mDistDraft: s.distDraft,
+      onMDistDraft: (e) => { const v = e.target.value; this.setState({ distDraft: v }); },
+      addMDist: () => {
+        const v = parseInt(String(s.distDraft).replace(/[^0-9]/g, ''), 10);
+        if (!v || v < 10 || v > 500) { this.flash('Entfernung zwischen 10 und 500 m eingeben.'); return; }
+        this.setState(p => ({
+          distDraft: '',
+          markers: p.markers.map(m => m.id !== p.sel || (m.dists || []).indexOf(v) >= 0 ? m
+            : Object.assign({}, m, { dists: (m.dists || []).concat([v]).sort((a, b) => a - b) }))
+        }));
+      },
+      mDistHint: 'Ringe liegen als gestrichelte Kreise um den Ansitz — Reichweite prüfen, Nachbargrenzen und Straßen im Blick behalten. Maßstab ' + M_PER_PX + ' m/px — Pin und Beschriftung bleiben beim Zoomen gleich groß, die Ringe wachsen mit.',
+      mName: cur ? cur.name : '', mNote: cur ? cur.note : '',
+      mCoords: cur ? this.gps(cur.x, cur.y) : '', mDate: cur ? cur.date : '',
+      onMName: (e) => { const v = e.target.value; this.setState(p => ({ markers: p.markers.map(m => m.id === p.sel ? Object.assign({}, m, { name: v }) : m) })); },
+      onMNote: (e) => { const v = e.target.value; this.setState(p => ({ markers: p.markers.map(m => m.id === p.sel ? Object.assign({}, m, { note: v }) : m) })); },
+      deleteMarker: () => this.setState(p => ({ markers: p.markers.filter(m => m.id !== p.sel), sheet: null, sel: null })),
+      markerToJournal: () => this.setState(p => ({
+        sheet: 'entry',
+        form: Object.assign({}, p.form, { ort: cur ? cur.name : p.form.ort, typ: cur && cur.type === 'erleg' ? 'Abschuss' : 'Beobachtung' })
+      })),
+
+      fHa: fld ? this.fmt(this.ha(fld.points), 2) + ' ha' : '', fFarmer: fld ? fld.farmer : '',
+      cropOptions: CROPS.map(c => ({
+        label: c, st: this.chip(fld && fld.crop === c, { minHeight: 44, fontSize: 13 }),
+        onClick: () => this.setState(p => ({ fieldData: p.fieldData.map(f => f.id === p.selField ? Object.assign({}, f, { crop: c }) : f) }))
+      })),
+      fHistory: fld ? fld.history : [],
+
+      revierRows: s.revierData.map(r => {
+        const on = r.id === act.id;
+        return {
+          name: r.name,
+          meta: this.fmt(this.ha(r.points), 0) + ' ha · ' + (r.kind === 'eigen' ? 'Eigenjagd' : r.kind === 'begeh' ? 'Begehungsschein' : 'Pacht')
+            + ' · ' + s.markers.filter(m => (m.revier || 'r1') === r.id).length + ' Marker',
+          badge: on ? 'AKTIV' : '',
+          isActive: on,
+          vis: r.visible ? 'Sichtbar' : 'Aus',
+          st: this.block(on),
+          swatch: { width: 20, height: 20, flex: 'none', border: '3px ' + (r.kind === 'eigen' ? 'solid ' : 'dashed ') + (on ? 'var(--accent)' : 'var(--muted)'), opacity: r.visible || on ? 1 : 0.35 },
+          visSt: {
+            minHeight: 40, border: '2px solid var(--line)', background: r.visible ? 'var(--chip)' : 'transparent',
+            color: 'var(--ink)', fontSize: 11, letterSpacing: '.06em', padding: '0 10px', cursor: 'pointer', flex: 'none'
+          },
+          onClick: () => this.setState({ activeRevier: r.id, sheet: null }),
+          onVis: (e) => { e.stopPropagation(); this.setState(p => ({ revierData: p.revierData.map(x => x.id === r.id ? Object.assign({}, x, { visible: !x.visible }) : x) })); }
+        };
+      }),
+      actName: act.name,
+      onActName: (e) => { const v = e.target.value; this.setState(p => ({ revierData: p.revierData.map(x => x.id === p.activeRevier ? Object.assign({}, x, { name: v }) : x) })); },
+      actKinds: [['eigen', 'Eigenjagd'], ['pacht', 'Pacht'], ['begeh', 'Begehungsschein']].map(([id, label]) => ({
+        label, st: this.chip(act.kind === id, { minHeight: 44, fontSize: 13, flex: 1 }),
+        onClick: () => this.setState(p => ({ revierData: p.revierData.map(x => x.id === p.activeRevier ? Object.assign({}, x, { kind: id }) : x) }))
+      })),
+      canDeleteRevier: s.revierData.length > 1,
+      deleteRevier: () => this.setState(p => {
+        const rest = p.revierData.filter(x => x.id !== p.activeRevier);
+        if (!rest.length) return {};
+        return { revierData: rest, activeRevier: rest[0].id, markers: p.markers.filter(m => (m.revier || 'r1') !== p.activeRevier) };
+      }),
+
+      legend: TYPES.map(t => ({
+        code: t.code, d: ICON[t.id], useSym: sym, useCode: !sym, label: t.label,
+        count: s.markers.filter(m => m.type === t.id).length + ' auf der Karte',
+        st: {
+          width: 30, height: 30, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: t.accent ? 'var(--accent)' : 'var(--surf)', color: t.accent ? '#fff' : 'var(--ink)',
+          border: '2px solid var(--line)', boxSizing: 'border-box'
+        }
+      })),
+
+      // ── Tagebuch ────────────────────────────────────
+      jfilters: ['Alle', 'Abschuss', 'Beobachtung', 'Ansitz'].map(f => ({
+        label: f, st: this.chip(s.jfilter === f, { minHeight: 44, fontSize: 13, flex: 'none' }),
+        onClick: () => this.setState({ jfilter: f })
+      })),
+      journal: s.journal.filter(e => s.jfilter === 'Alle' || e.typ === s.jfilter).map(e => ({
+        typ: e.typ, when: e.when, title: e.title, line: e.line,
+        tagSt: this.tag(e.typ === 'Abschuss'),
+        chips: e.chips.map(c => ({ label: c, st: this.tag(c === 'Meldung offen') }))
+      })),
+      openNewEntry: () => this.setState({ sheet: 'entry' }),
+      typOptions: ['Beobachtung', 'Abschuss', 'Ansitz'].map(o => ({
+        label: o, st: this.chip(s.form.typ === o, { minHeight: 48, flex: 1, fontSize: 14 }),
+        onClick: () => this.setState(p => ({ form: Object.assign({}, p.form, { typ: o }) }))
+      })),
+      wildOptions: WILD.map(o => ({
+        label: o, st: this.chip(s.form.wildart === o, { minHeight: 44, fontSize: 13 }),
+        onClick: () => this.setState(p => ({ form: Object.assign({}, p.form, { wildart: o }) }))
+      })),
+      fGewicht: s.form.gewicht, onGewicht: (e) => { const v = e.target.value; this.setState(p => ({ form: Object.assign({}, p.form, { gewicht: v }) })); },
+      fText: s.form.text, onFText: (e) => { const v = e.target.value; this.setState(p => ({ form: Object.assign({}, p.form, { text: v }) })); },
+      fOrt: s.form.ort,
+      pickOnMap: () => this.setState({ sheet: null, screen: 'karte', pickTarget: true, toast: 'Standort auf der Karte antippen' }),
+      toggleFoto: () => this.setState(p => ({ form: Object.assign({}, p.form, { foto: !p.form.foto }) })),
+      fotoLabel: s.form.foto ? 'Foto angehängt · 1 Bild (ohne Standort-EXIF)' : 'Foto aufnehmen oder anhängen',
+      fotoSt: this.chip(s.form.foto, { minHeight: 56, width: '100%', textAlign: 'left', fontSize: 14, boxSizing: 'border-box' }),
+      toggleMelden: () => this.setState(p => ({ form: Object.assign({}, p.form, { melden: !p.form.melden }) })),
+      meldenLabel: s.form.melden ? 'Für Streckenliste vormerken · aktiv' : 'Für Streckenliste vormerken',
+      meldenSt: this.block(s.form.melden),
+      saveEntry: () => {
+        const f = s.form;
+        const chips = [];
+        if (f.foto) chips.push('Foto');
+        if (f.melden) chips.push('Meldung vorgemerkt');
+        const title = f.typ === 'Ansitz' ? 'Ansitz protokolliert' : f.wildart + (f.gewicht ? ', ' + f.gewicht + ' kg' : '');
+        const e = { id: Date.now(), typ: f.typ, when: '28.08.2026 · 19:42', title, line: f.ort + (f.text ? ' · ' + f.text : ''), chips, wild: f.wildart };
+        this.setState(p => ({
+          journal: [e].concat(p.journal), sheet: null, screen: 'tagebuch',
+          form: Object.assign({}, p.form, { gewicht: '', text: '', foto: false, melden: false })
+        }));
+        this.flash('Eintrag gespeichert · offline, Sync bei Empfang');
+      },
+
+      // ── Jagdzeiten ──────────────────────────────────
+      zeitGroups: ZEIT_GROUPS.map(g => {
+        const rows = g.rows.map(zeitRow);
+        const open = rows.filter(r => r.status === 'JAGDZEIT').length;
+        return {
+          name: g.name, rows, open: !!s.openGroups[g.id],
+          chev: s.openGroups[g.id] ? '−' : '+',
+          meta: rows.length + ' Arten · ' + open + ' aktuell in Jagdzeit',
+          onClick: () => this.setState(p => ({ openGroups: Object.assign({}, p.openGroups, { [g.id]: !p.openGroups[g.id] }) })),
+          headSt: {
+            width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 12,
+            minHeight: 66, padding: '10px 14px', cursor: 'pointer',
+            border: 'none', borderBottom: '2px solid var(--line)',
+            borderLeft: '6px solid ' + (s.openGroups[g.id] ? 'var(--accent)' : 'transparent'),
+            background: 'var(--surf)', color: 'var(--ink)'
+          }
+        };
+      }),
+
+      ansitze: ansitzWind.map(([name, rating, line]) => ({
+        name, rating, line,
+        st: {
+          fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', padding: '4px 7px',
+          border: '2px solid ' + (rating === 'Gut' ? 'var(--accent)' : 'var(--rule)'),
+          color: rating === 'Gut' ? 'var(--accent)' : 'var(--muted)'
+        }
+      })),
+
+      // ── Einstellungen ───────────────────────────────
+      ctrlOptions: [
+        { id: 'werkzeug', title: 'Variante A · Werkzeugleiste', desc: 'Markertyp unten wählen, dann Stelle antippen. Schnell für viele Marker hintereinander.' },
+        { id: 'zielkreuz', title: 'Variante B · Zielkreuz', desc: 'Plus-Taste, Typ wählen, Karte unter das Kreuz schieben, „Hier setzen". Präziser mit Handschuhen und einer Hand.' }
+      ].map(o => ({
+        title: o.title, desc: o.desc, st: this.block(s.ctrl === o.id),
+        onClick: () => this.setState({ ctrl: o.id, tool: null, radial: false, aim: null })
+      })),
+      signOptions: [
+        { id: 'symbol', title: 'Symbole', desc: 'Piktogramme — schneller erfassbar, auch mit Lesebrille und bei Nässe.' },
+        { id: 'buchstabe', title: 'Buchstaben', desc: 'Kürzel A, F, W, K, T, S, E — wie auf gedruckten Revierkarten und Standkarten.' }
+      ].map(o => ({
+        title: o.title, desc: o.desc, st: this.block(s.zeichen === o.id),
+        onClick: () => this.setState({ zeichen: o.id }),
+        samples: ['ansitz', 'kirrung', 'erleg'].map(id => {
+          const t = this.type(id);
+          return {
+            code: t.code, d: ICON[id], useSym: o.id === 'symbol', useCode: o.id !== 'symbol',
+            st: {
+              width: 28, height: 28, flex: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              border: '2px solid var(--line)', boxSizing: 'border-box',
+              background: t.accent ? 'var(--accent)' : 'transparent', color: t.accent ? '#fff' : 'var(--ink)'
+            }
+          };
+        })
+      })),
+      themeOptions: [
+        { id: 'tag', title: 'Tagmodus', desc: 'Hoher Kontrast für Sonnenlicht.', on: !s.night },
+        { id: 'nacht', title: 'Rotlichtmodus', desc: 'Nur Rottöne, gedimmt — schont die Nachtsicht auf dem Ansitz.', on: s.night }
+      ].map(o => ({
+        title: o.title, desc: o.desc, st: this.block(o.on),
+        onClick: () => this.setState({ night: o.id === 'nacht' })
+      })),
+      downloads: dl.map(([name, meta, action, act]) => ({
+        name, meta, action,
+        st: this.chip(false, { minHeight: 44, fontSize: 11, fontWeight: 600, letterSpacing: '.08em', flex: 'none', opacity: act ? 1 : 0.45 }),
+        onClick: () => this.flash(act ? name + ' — Download in Warteschlange' : name + ' ist aktuell')
+      })),
+
+      ctrlSwitch: [
+        { id: 'werkzeug', label: 'A · Werkzeugleiste' },
+        { id: 'zielkreuz', label: 'B · Zielkreuz' }
+      ].map(o => ({
+        label: o.label,
+        st: {
+          minHeight: 44, padding: '0 16px', fontSize: 13, fontWeight: s.ctrl === o.id ? 600 : 400,
+          border: '2px solid ' + (s.ctrl === o.id ? '#6f5a23' : '#3a3a2c'),
+          background: s.ctrl === o.id ? '#6f5a23' : 'transparent',
+          color: s.ctrl === o.id ? '#faf6ec' : '#23231c', cursor: 'pointer'
+        },
+        onClick: () => this.setState({ ctrl: o.id, tool: null, radial: false, aim: null })
+      }))
+    });
+  }
+}
+
+</script>
+</body>
+</html>
