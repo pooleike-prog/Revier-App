@@ -149,6 +149,10 @@ export interface AppState {
   selPost: string | null;
 
   drawing: Array<[number, number]> | null;
+  /** Der Entwurf ist ein geschlossener Ring (beim Bearbeiten von Anfang an). */
+  drawClosed: boolean;
+  /** Revier, dessen Grenze gerade bearbeitet wird; null beim Neuzeichnen. */
+  drawEdit: string | null;
   pendingRevier: Array<[number, number]> | null;
   rName: string;
 

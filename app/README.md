@@ -62,6 +62,8 @@ src/
     planning.ts           Pfeilgeometrie, Ausschnitt-Zoom, Treiben anlegen
     selectors.ts          aktives Revier, Jagd, Treiben, Sichtbarkeit
     mapInteraction.ts     Karten-Pan/Zoom, Bildschirm → Kartenkoordinate
+    grenze.ts             Grenzzeichnen mit Fadenkreuz: Fangziel, Selbstschnitt,
+                          Zurück/Wieder
     styles.ts             die Stil-Fabriken des Entwurfs (chip, block, tag, badge)
   screens/                ein Modul je Reiter
   sheets/                 die neun Bottom-Sheets

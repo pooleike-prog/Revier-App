@@ -96,10 +96,37 @@ await check('Messen-Modus lässt sich einschalten', async () => {
   await page.getByRole('button', { name: 'MESSEN' }).click();
 });
 
-await check('Grenze zeichnen zeigt den Hinweis', async () => {
+await check('Grenze mit Fadenkreuz zeichnen, Zurück, Fertig', async () => {
   await page.getByRole('button', { name: 'GRENZE' }).click();
-  await page.getByText('Reviergrenze zeichnen').waitFor({ timeout: 2000 });
-  await page.getByRole('button', { name: 'Abbr.' }).click();
+  await page.getByText('Grenze zeichnen', { exact: true }).waitFor({ timeout: 2000 });
+  const karte = page.locator('div[style*="touch-action: none"]').first();
+  const b = await karte.boundingBox();
+  // Karte unter dem Kreuz verschieben, wie mit dem Finger.
+  const ziehen = async (dx, dy) => {
+    const x = b.x + b.width / 2, y = b.y + 120;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + dx / 2, y + dy / 2, { steps: 4 });
+    await page.mouse.move(x + dx, y + dy, { steps: 4 });
+    await page.mouse.up();
+  };
+  // Auf dem Demo-Revier rastet das Kreuz oft an Schlaggrenzen ein, dann heißt
+  // der Knopf „An Nachbargrenze setzen“.
+  const haupt = () => page.getByRole('button', { name: /setzen$/ }).click();
+  await haupt();
+  await ziehen(-90, 0); await haupt();
+  await ziehen(0, -90); await haupt();
+  await page.getByText(/^3 Pkt/).waitFor({ timeout: 2000 });
+  await page.getByRole('button', { name: /Zurück/ }).click();
+  await page.getByText(/^2 Pkt/).waitFor({ timeout: 2000 });
+  await page.getByRole('button', { name: /Wieder/ }).click();
+  await page.getByText(/^3 Pkt/).waitFor({ timeout: 2000 });
+  // Zurück auf den ersten Punkt: das Kreuz rastet ein und bietet Schließen an.
+  await ziehen(90, 90);
+  await page.getByRole('button', { name: 'Grenze schließen' }).waitFor({ timeout: 2000 });
+  await page.getByRole('button', { name: 'Fertig' }).click();
+  await page.getByText('Revier-Bezeichnung').waitFor({ timeout: 2000 });
+  await page.getByRole('button', { name: 'Schließen' }).click();
 });
 
 await check('Planung: Treiben, Werkzeuge und Liste', async () => {
