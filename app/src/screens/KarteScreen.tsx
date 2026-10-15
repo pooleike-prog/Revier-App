@@ -1,12 +1,16 @@
+import { useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from 'react';
+import type { Map as MapLibreMap } from 'maplibre-gl';
 import { useApp, typeDef } from '../state/store';
 import { ICON, M_PER_PX } from '../data/constants';
 import type { Marker, MarkerType } from '../types';
 import { compass, fmt, gps, ha, parse } from '../lib/geo';
 import { activeRevier, visibleRevierIds } from '../lib/selectors';
 import { chip, ctrlBox, pinStyle } from '../lib/styles';
-import { MAP_H, MAP_W, mapWrapStyle, toMap, usePan } from '../lib/mapInteraction';
-import { MapTerrain } from '../components/MapTerrain';
+import { MAP_H, MAP_W, mapWrapStyle, toMap, usePan, usePinch } from '../lib/mapInteraction';
+import { RealMap } from '../components/RealMap';
+import { kachelAdressen } from '../lib/kartenquellen';
+import { vorladen } from '../lib/kachelspeicher';
 import { Icon } from '../components/Icon';
 import { Toast } from '../components/Toast';
 import { DrawPanel } from './karte/DrawPanel';
@@ -17,9 +21,30 @@ import { AimOverlay, RadialFab } from './karte/AimPanel';
  *  gezeichnet, nicht als 30-px-Symbolkasten — sonst verdeckt der Pin die Ringe. */
 const ringed = (m: Marker) => m.type === 'ansitz' && !!m.dists && m.dists.length > 0;
 
+/** Zoomgrenzen der Revierkarte: 0,6 ≈ 20 m/px bis 16 ≈ 0,75 m/px (Luftbild). */
+const ZOOM_MIN = 0.6, ZOOM_MAX = 16, ZOOM_STUFE = 1.5;
+/** Mehr Kacheln lädt „Revier offline speichern“ nicht auf einmal. */
+const MAX_KACHELN = 6000;
+
+/** Zoomen um die Mitte des Kartenfensters statt um die Rastermitte — sonst
+ *  liefe das Revier bei starker Vergrößerung aus dem Bild. */
+function zoomUm(pan: { x: number; y: number }, alt: number, neu: number) {
+  // Fenstermitte bei 206/260 wie in placeAtCenter.
+  const f = neu / alt;
+  return {
+    zoom: neu,
+    pan: { x: 206 - 200 - (206 - 200 - pan.x) * f, y: 260 - 260 - (260 - 260 - pan.y) * f },
+  };
+}
+
 export function KarteScreen() {
   const { state: s, set, flash, addMarker } = useApp();
   const pan = usePan(s.pan, p => set({ pan: p }));
+  const pinch = usePinch({ pan: s.pan, zoom: s.zoom }, (p, z) => set({ pan: p, zoom: z }), ZOOM_MIN, ZOOM_MAX);
+  const karte = useRef<MapLibreMap | null>(null);
+  const laden = useRef<AbortController | null>(null);
+  const [offline, setOffline] = useState('');
+  const inv = 1 / s.zoom;
 
   const act = activeRevier(s);
   const visIds = visibleRevierIds(s);
@@ -43,13 +68,24 @@ export function KarteScreen() {
     : s.tool ? typeDef(s.tool).label + ' — Stelle auf der Karte antippen'
     : 'Werkzeug wählen, dann Karte antippen';
 
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (pinch.down(e)) { pan.end(); return; }
+    pan.start(e);
+  };
+
+  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    pinch.up(e);
+    pan.end();
+  };
+
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (pinch.move(e)) return;
     if (s.measure) { set({ measTo: toMap(e, s.pan, s.zoom) }); return; }
     pan.move(e);
   };
 
   const onMapClick = (e: ReactMouseEvent<HTMLDivElement>) => {
-    if (pan.moved()) return;
+    if (pan.moved() || pinch.recent()) return;
     const pt = toMap(e, s.pan, s.zoom);
     if (s.measure) { set({ measFrom: pt, measTo: pt }); return; }
     if (s.drawing) { set(st => ({ drawing: (st.drawing ?? []).concat([[pt.x, pt.y]]) })); return; }
@@ -77,6 +113,32 @@ export function KarteScreen() {
     set({ pendingRevier: s.drawing, drawing: null, sheet: 'naming', rName: 'Revier Neu' });
   };
 
+  /** Lädt die Kacheln des aktiven Reviers samt 300 m Rand für den aktuellen
+   *  Kartenstil. Ein zweiter Druck bricht ab. */
+  const revierOffline = async () => {
+    if (laden.current) { laden.current.abort(); return; }
+    const m = karte.current;
+    if (!m || !m.isStyleLoaded()) { flash('Karte lädt noch — gleich noch einmal versuchen.'); return; }
+    const p = parse(act.points);
+    const rand = 300 / M_PER_PX;
+    const min = { x: Math.min(...p.map(q => q[0])) - rand, y: Math.min(...p.map(q => q[1])) - rand };
+    const max = { x: Math.max(...p.map(q => q[0])) + rand, y: Math.max(...p.map(q => q[1])) + rand };
+    const urls = kachelAdressen(m, min, max);
+    if (!urls.length) { flash('Diese Kartenquelle wird nur beim Ansehen gespeichert.'); return; }
+    if (urls.length > MAX_KACHELN) { flash(`Revier zu groß für einen Durchgang (${urls.length} Kacheln).`); return; }
+    const ctl = new AbortController();
+    laden.current = ctl;
+    const stil = s.mapStyle === 'topo' ? 'Topografie' : 'Luftbild';
+    const r = await vorladen(urls, (f, e) => setOffline(`${stil} offline · ${f + e}/${urls.length}`), ctl.signal);
+    laden.current = null;
+    setOffline('');
+    flash(ctl.signal.aborted
+      ? 'Offline-Speichern abgebrochen.'
+      : r.fehler
+        ? `${act.name}: ${r.fertig} Kacheln gespeichert, ${r.fehler} nicht erreichbar.`
+        : `${act.name}: ${stil} offline gespeichert (${r.fertig} Kacheln).`);
+  };
+
   const placeAtCenter = () => {
     if (!s.aim) return;
     const x = Math.round((206 - s.pan.x - 200 * (1 - s.zoom)) / s.zoom);
@@ -87,28 +149,39 @@ export function KarteScreen() {
   return (
     <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: 'var(--m-grass)' }}>
 
+      <RealMap
+        pan={s.pan} zoom={s.zoom} art={s.mapStyle} night={s.night}
+        onMap={m => { karte.current = m; }} vermerkOben={96}
+      />
+
       <div
-        onPointerDown={pan.start}
+        onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={pan.end}
+        onPointerUp={onPointerUp}
         // Auch beim Verlassen der Karte lösen — sonst bliebe die Geste hängen
         // und ein folgendes Tippen würde als Ziehen verworfen.
-        onPointerCancel={pan.end}
-        onPointerLeave={pan.end}
+        onPointerCancel={onPointerUp}
+        onPointerLeave={onPointerUp}
         onClick={onMapClick}
         style={{ position: 'absolute', inset: 0, touchAction: 'none', cursor: 'crosshair' }}
       >
         <div style={mapWrapStyle(s.pan, s.zoom)}>
-          <svg width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ display: 'block', position: 'absolute', left: 0, top: 0 }}>
-            <MapTerrain detailed />
-
+          <svg width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ display: 'block', position: 'absolute', left: 0, top: 0, overflow: 'visible' }}>
+            {/* Schraffur des aktiven Reviers — Abstand bleibt bei jedem Zoom gleich. */}
+            <defs>
+              <pattern id="rk-schraffur" patternUnits="userSpaceOnUse" width={9} height={9} patternTransform={`scale(${inv}) rotate(45)`}>
+                <line x1={0} y1={0} x2={0} y2={9} stroke="var(--accent)" strokeWidth={2} />
+              </pattern>
+            </defs>
             {s.fieldData.map(f => (
               <polygon
                 key={f.id}
                 points={f.points}
                 fill="var(--m-field)"
+                fillOpacity={0.35}
                 stroke={s.selField === f.id ? 'var(--accent)' : 'var(--m-stroke)'}
-                strokeWidth={s.selField === f.id ? 3 : 1}
+                strokeWidth={s.selField === f.id ? 3 : 1.5}
+                vectorEffect="non-scaling-stroke"
                 onClick={(e) => { e.stopPropagation(); set({ selField: f.id, sheet: 'field', sel: null }); }}
                 style={{ cursor: 'pointer' }}
               />
@@ -118,10 +191,13 @@ export function KarteScreen() {
               <polygon
                 key={r.id}
                 points={r.points}
-                fill="none"
+                fill={r.id === act.id ? 'url(#rk-schraffur)' : 'var(--m-label)'}
+                fillOpacity={r.id === act.id ? 0.35 : 0.06}
+                pointerEvents="none"
                 stroke={r.id === act.id ? 'var(--accent)' : 'var(--m-label)'}
                 strokeWidth={r.id === act.id ? 3 : 2}
                 strokeDasharray={r.kind === 'eigen' ? '0' : '10 6'}
+                vectorEffect="non-scaling-stroke"
               />
             ))}
 
@@ -131,6 +207,7 @@ export function KarteScreen() {
                 fill="rgba(111,90,35,0.12)"
                 stroke="var(--accent)"
                 strokeWidth={2}
+                vectorEffect="non-scaling-stroke"
               />
             )}
           </svg>
@@ -141,16 +218,17 @@ export function KarteScreen() {
             const p = parse(f.points);
             const cx = p.reduce((a, q) => a + q[0], 0) / p.length;
             const maxY = p.reduce((a, q) => Math.max(a, q[1]), 0);
-            const w = f.crop.length * 5.6 + 8, h = 15;
+            const w = f.crop.length * 5.6 + 8, h = 15 * inv;
             let top = maxY + 4;
             for (let pass = 0; pass < 6; pass++) {
-              const hit = s.markers.some(m => Math.abs(m.x - cx) < 15 + w / 2 && m.y - 15 < top + h && m.y + 15 > top);
+              const hit = s.markers.some(m => Math.abs(m.x - cx) < (15 + w / 2) * inv && m.y - 15 * inv < top + h && m.y + 15 * inv > top);
               if (!hit) break;
-              top += 18;
+              top += 18 * inv;
             }
             return (
               <div key={f.id} style={{
-                position: 'absolute', left: Math.round(cx - w / 2), top: Math.round(top), width: Math.round(w),
+                position: 'absolute', left: cx - w / 2, top, width: Math.round(w),
+                transform: `scale(${inv})`, transformOrigin: 'top center',
                 textAlign: 'center', pointerEvents: 'none', fontSize: 9, fontWeight: 600, lineHeight: '15px',
                 letterSpacing: '.05em', color: 'var(--m-label)', whiteSpace: 'nowrap',
                 background: 'var(--m-grass)', zIndex: 1,
@@ -161,7 +239,7 @@ export function KarteScreen() {
           {(s.drawing ?? []).map((p, i) => (
             <div key={i} style={{
               position: 'absolute', left: p[0] - 5, top: p[1] - 5,
-              width: 10, height: 10, background: 'var(--accent)',
+              width: 10, height: 10, background: 'var(--accent)', transform: `scale(${inv})`,
             }} />
           ))}
 
@@ -173,7 +251,7 @@ export function KarteScreen() {
               return (
                 <div key={`${m.id}-${d}`} style={{
                   position: 'absolute', left: m.x - r, top: m.y - r, width: r * 2, height: r * 2,
-                  borderRadius: '50%', border: (on ? 2 : 1) + 'px dashed var(--gold)', boxSizing: 'border-box',
+                  borderRadius: '50%', border: (on ? 2 : 1) * inv + 'px dashed var(--gold)', boxSizing: 'border-box',
                   background: `color-mix(in oklab, var(--gold) ${on ? 14 : 7}%, transparent)`,
                   opacity: on ? 1 : 0.75, pointerEvents: 'none',
                 }} />
@@ -200,7 +278,7 @@ export function KarteScreen() {
             <>
               <svg
                 width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-                style={{ display: 'block', position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 5 }}
+                style={{ display: 'block', position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 5, overflow: 'visible' }}
               >
                 <line
                   x1={mFrom.x} y1={mFrom.y} x2={mTo.x} y2={mTo.y}
@@ -252,7 +330,7 @@ export function KarteScreen() {
               <div
                 key={m.id}
                 onClick={selectMarker(m.id)}
-                style={{ ...pinStyle(t.accent, s.sel === m.id), left: m.x - 15, top: m.y - 15 }}
+                style={{ ...pinStyle(t.accent, s.sel === m.id), left: m.x - 15, top: m.y - 15, transform: `scale(${inv})` }}
               >
                 {sym
                   ? <Icon d={ICON[t.id]} size={18} />
@@ -277,15 +355,20 @@ export function KarteScreen() {
       <div style={{ position: 'absolute', top: 12, right: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <button onClick={() => set({ sheet: 'reviere' })} style={{ ...ctrlBox, fontSize: 11, fontWeight: 600, letterSpacing: '.04em' }}>REV</button>
         <button onClick={() => set({ sheet: 'legend' })} style={{ ...ctrlBox, fontSize: 11, fontWeight: 600, letterSpacing: '.04em' }}>i</button>
-        <button onClick={() => set(p => ({ zoom: Math.min(2.4, p.zoom + 0.25) }))} aria-label="Vergrößern" style={{ ...ctrlBox, fontSize: 22, fontWeight: 500, lineHeight: 1 }}>+</button>
-        <button onClick={() => set(p => ({ zoom: Math.max(0.6, p.zoom - 0.25) }))} aria-label="Verkleinern" style={{ ...ctrlBox, fontSize: 22, fontWeight: 500, lineHeight: 1 }}>−</button>
+        <button onClick={() => set(p => zoomUm(p.pan, p.zoom, Math.min(ZOOM_MAX, p.zoom * ZOOM_STUFE)))} aria-label="Vergrößern" style={{ ...ctrlBox, fontSize: 22, fontWeight: 500, lineHeight: 1 }}>+</button>
+        <button onClick={() => set(p => zoomUm(p.pan, p.zoom, Math.max(ZOOM_MIN, p.zoom / ZOOM_STUFE)))} aria-label="Verkleinern" style={{ ...ctrlBox, fontSize: 22, fontWeight: 500, lineHeight: 1 }}>−</button>
+        <button
+          onClick={revierOffline}
+          aria-label={offline ? 'Offline-Speichern abbrechen' : 'Revier offline speichern'}
+          style={{ ...ctrlBox, fontSize: 11, fontWeight: 600, letterSpacing: '.04em', ...(offline ? { background: 'var(--accent)', color: 'var(--surf)' } : null) }}
+        >{offline ? '■' : 'OFF'}</button>
       </div>
 
       <div style={{
         position: 'absolute', left: 12, top: 66, background: 'var(--surf)', border: '2px solid var(--line)',
         padding: '5px 9px', fontSize: 10, letterSpacing: '.06em', textTransform: 'uppercase', color: 'var(--muted)',
       }}>
-        {fmt(s.zoom * 100, 0)} % · {M_PER_PX} m/px · {s.mapStyle === 'topo' ? 'OSM + DGM1' : 'DOP20 LGLN'}
+        {offline || <>{fmt(M_PER_PX / s.zoom, M_PER_PX / s.zoom < 10 ? 1 : 0)} m/px · {s.mapStyle === 'topo' ? 'Topografie' : 'Luftbild DOP20'}</>}
       </div>
 
       {s.drawing && (
