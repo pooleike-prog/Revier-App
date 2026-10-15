@@ -10,3 +10,8 @@ export const WERBEFREI = false;
  *  sa30 / sa60 = Sonnenauf-/-untergang ± 30 bzw. 60 min. */
 export type BuechsenlichtMode = 'daemmerung' | 'sa30' | 'sa60';
 export const BUECHSENLICHT: BuechsenlichtMode = 'daemmerung';
+
+/** Wo das Kartenraster der App auf der Erde liegt: die Rastermitte (200, 260).
+ *  Das Demo-Revier sitzt bei Hannover, im Abdeckungsgebiet des LGLN-Luftbilds.
+ *  Für ein echtes Revier gehört hier dessen Mitte hin. */
+export const KARTEN_ANKER = { lat: 52.34608, lng: 9.777 };

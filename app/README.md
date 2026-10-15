@@ -4,8 +4,7 @@ Implementierung des Claude-Design-Entwurfs `project/Revier App.dc.html` als
 React-App. Sechs Reiter: **Karte**, **Planung**, **Tagebuch**, **Zeiten**,
 **Ansitz**, **Mehr**.
 
-Läuft eigenständig: Erfasste Daten bleiben auf dem Gerät, Schriften und
-Kartenbild liegen im Paket, und ohne Empfang startet die App wie gewohnt.
+Läuft eigenständig: Erfasste Daten bleiben auf dem Gerät, Schriften liegen im Paket, Kartenkacheln im Gerätespeicher, und ohne Empfang startet die App wie gewohnt.
 
 ```bash
 npm install
@@ -69,6 +68,33 @@ src/
                           Sheet-Hülle, Werbeplatz, Piktogramm
 ```
 
+## Karte
+
+Die Karte ist MapLibre GL JS (BSD-Lizenz) mit offenen, schlüsselfreien Quellen:
+
+| Ansicht | Quelle | Lizenz | Offline vorab |
+|---|---|---|---|
+| Topografie | basemap.de Relief (BKG), Vektorkacheln mit Höhenlinien, ganz DE | CC BY 4.0 | ja, bis Stufe 16 |
+| Satellit | DOP20 LGLN Niedersachsen (20 cm Luftbild, WMS) | CC BY 4.0 | ja, bis Stufe 17 |
+| Ausweiche | OpenTopoMap, wenn basemap.de nicht lädt | CC BY-SA | nein, nur Angesehenes |
+
+- `components/RealMap.tsx` — die Karte unter der Zeichenebene. Sie hat keine
+  eigenen Gesten, sondern folgt `pan`/`zoom` der App. So bleiben Marker,
+  Grenzen und Schläge in Rasterpixeln gespeichert und liegen trotzdem exakt
+  auf den Kacheln (`lib/projection.ts`: das Raster ist ein Ausschnitt von Web
+  Mercator um `KARTEN_ANKER`, 12 m/px bei Zoom 1).
+- `lib/kachelspeicher.ts` — jede Kartenadresse läuft über das Protokoll
+  `rk://` und den Cache Storage des Geräts. Was einmal angezeigt wurde, geht
+  auch ohne Netz; nach 30 Tagen wird frisch geholt, sonst bleibt der alte Stand.
+- **OFF** auf der Karte lädt das aktive Revier plus 300 m Rand für den
+  gewählten Stil (je etwa 850 Kacheln beim 1043-ha-Demo-Revier). Ein zweiter
+  Druck bricht ab.
+- **Rotlicht** filtert die Kacheln mit einer echten Farbmatrix (nur Rotkanal,
+  Topografie invertiert), nicht mit einer Tönung.
+- Sentinel-2 von EOX ist bewusst nicht dabei: nur nicht-kommerziell frei
+  (CC BY-NC-SA) und nur 10 m Auflösung. Die Kacheln von openstreetmap.org
+  scheiden aus, weil deren Nutzungsregeln das Vorabladen verbieten.
+
 ## Was echt gerechnet wird — und was Demo ist
 
 **Echt gerechnet:**
@@ -90,6 +116,7 @@ src/
 - **Gespeichert wird lokal** (`state/persist.ts`): Reviere, Marker, Flächen,
   Tagebuch, Jagdplanung und Einstellungen überstehen das Schließen. Nichts
   verlässt das Gerät. *Mehr → Daten* stellt die Demo-Daten wieder her.
+- **Karte offline** über den Kachelspeicher, siehe *Karte* oben.
 - **Schriften im Paket** (`public/fonts/`) statt von Google — sonst stünde die
   App im Revier ohne Empfang in Georgia.
 - **Offline startklar**: Service Worker legt die 45 Dateien der App auf dem
@@ -97,9 +124,9 @@ src/
 
 **Demo-Stand:**
 
-- Das Kartenbild ist der Platzhalter aus dem Entwurf (SVG, Pixelkoordinaten bei
-  12 m/px), nicht MapLibre. Der Wechsel Topografie/Satellit tauscht die
-  Farbtöne, keine echten Kacheln.
+- Das Demo-Revier liegt fiktiv bei Hannover (`KARTEN_ANKER` in
+  `data/settings.ts`); Grenzen und Schläge passen deshalb nicht zum echten
+  Gelände darunter.
 - Jagdzeiten, Reviere, Schläge, Marker, Tagebuch und Jagden sind Demo-Daten aus
   `data/seed.ts`; Wind und Temperatur auf dem Ansitz-Reiter sind fest.
 - Der Stichtag der Jagdzeiten ist der 28.08.2026 (`HEUTE` in `constants.ts`),
@@ -108,10 +135,12 @@ src/
 
 ## Nächste Schritte in Richtung Produktion
 
-- **Karte auf MapLibre GL** umstellen: OSM-Vektorkacheln als PMTiles offline,
-  Orthofoto DOP20 der Landesvermessungsämter. Dafür bekommen Marker, Grenzen,
-  Schläge, Stände und Pfeile echte Koordinaten; `lib/geo.ts` und
-  `lib/mapInteraction.ts` sind die Stellen, an denen das Pixelraster steckt.
+- **Revier verorten**: Anker je Revier statt fest in `settings.ts`, gesetzt
+  über Adresssuche oder GPS; danach Marker, Grenzen und Schläge als echte
+  Koordinaten speichern statt als Rasterpixel.
+- **Luftbild weiterer Länder** (NRW, Brandenburg, Hessen …) als Einträge in
+  `lib/kartenquellen.ts`, gewählt nach Lage des Reviers.
+- **Zwei-Finger-Zoom** auf der Karte.
 - **Jagdzeiten je Bundesland** konfigurierbar machen (16 Varianten), dazu
   Elterntierschutz und behördliche Abweichungen.
 - **Flächenteilung** als Polylinien-Schnitt, damit auch einbuchtige Schläge

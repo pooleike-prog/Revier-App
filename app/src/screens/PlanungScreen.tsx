@@ -8,7 +8,7 @@ import { currentJagd, treibenInBox, treibenOf, treibenName } from '../lib/select
 import { addTreibenPatch, arrowGeom, extentPatch } from '../lib/planning';
 import { ctrlBox } from '../lib/styles';
 import { MAP_H, MAP_W, mapWrapStyle, toMap, usePan } from '../lib/mapInteraction';
-import { MapTerrain } from '../components/MapTerrain';
+import { RealMap } from '../components/RealMap';
 import { Icon } from '../components/Icon';
 import { Toast } from '../components/Toast';
 
@@ -155,6 +155,7 @@ export function PlanungScreen() {
       </div>
 
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: 'var(--m-grass)' }}>
+        <RealMap pan={s.pPan} zoom={s.pZoom} art={s.mapStyle} night={s.night} vermerkOben={62} />
         <div
           onPointerDown={pan.start}
           onPointerMove={pan.move}
@@ -166,7 +167,6 @@ export function PlanungScreen() {
         >
           <div style={mapWrapStyle(s.pPan, s.pZoom)}>
             <svg width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ display: 'block', position: 'absolute', left: 0, top: 0 }}>
-              <MapTerrain />
 
               {s.fieldData.map(f => {
                 const assigned = myTreiben.find(t => t.flaeche === f.name || f.name.indexOf(t.flaeche) === 0);
@@ -176,6 +176,7 @@ export function PlanungScreen() {
                     key={f.id}
                     points={f.points}
                     fill="var(--m-field)"
+                    fillOpacity={0.35}
                     stroke={on ? 'var(--accent)' : assigned ? 'var(--m-label)' : 'var(--m-stroke)'}
                     strokeWidth={on ? 3 : assigned ? 2 : 1}
                     strokeDasharray={assigned ? '0' : '4 4'}

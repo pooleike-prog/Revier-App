@@ -1,4 +1,5 @@
 import { COMPASS, M_PER_PX } from '../data/constants';
+import { pxToLngLat } from './projection';
 
 export type Vertex = [number, number];
 
@@ -57,10 +58,10 @@ export function fmt(n: number, d = 1): string {
   return n.toFixed(d).replace('.', ',');
 }
 
-/** Map pixels → the demo Revier's coordinates. */
+/** Kartenpixel → WGS84-Koordinate, über dieselbe Projektion wie die Kacheln. */
 export function gps(x: number, y: number): string {
-  return (52.318 + (520 - y) * 0.000108).toFixed(5).replace('.', ',') + ' N  '
-    + (9.742 + x * 0.000175).toFixed(5).replace('.', ',') + ' E';
+  const { lat, lng } = pxToLngLat(x, y);
+  return lat.toFixed(5).replace('.', ',') + ' N  ' + lng.toFixed(5).replace('.', ',') + ' E';
 }
 
 /** Himmelsrichtung of a vector in screen space (y grows southward). */
