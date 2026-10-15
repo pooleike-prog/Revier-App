@@ -63,6 +63,6 @@ export const LICHT_KURZ: Record<Licht, string> = {
 /** Farbe der Android-Systemleisten je Modus — gleich dem Hintergrund (--bg). */
 export const LICHT_BAR: Record<Licht, string> = {
   tag: '#f2eee2',
-  daemmerung: '#161c14',
+  daemmerung: '#0f1a14',
   rotlicht: '#070000',
 };

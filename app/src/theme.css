@@ -79,16 +79,16 @@ input, select, textarea, button { font-family: Lora, Georgia, serif; }
    Drei Lichtmodi, im Automatikbetrieb nach Sonnenstand (lib/lightMode.ts):
    Tag, Dämmerung, Rotlicht — als data-licht am .app-Element. Die Farben
    tragen die Namen der Revierpalette: Waldnacht, Loden, Moos, Messing,
-   Birkenrind, Signalorange. Map tones (--m-*) are a second set so the
+   Birkenrind, Signalorange — dieselben Werte wie im Büchsenlichtband. Map tones (--m-*) are a second set so the
    Satellit style and each light mode can restyle the map alone. */
 .app {
-  --waldnacht: #161c14; --loden-500: #3c4a35; --moos: #6b7b40;
-  --messing: #a8863c; --birkenrind: #f2eee2; --signal: #d9531e;
+  --waldnacht: #0f1a14; --loden-500: #2e3b2c; --moos: #5b6b3a;
+  --messing: #b08d57; --birkenrind: #e8e2d0; --signal: #e8622a;
 }
 
 /* Tag — Birkenrinde und Loden, voller Kontrast für Sonnenlicht. */
 .app, .app[data-licht="tag"] {
-  --bg: var(--birkenrind); --ink: #26301f; --accent: var(--loden-500); --gold: var(--messing); --loden: var(--loden-500);
+  --bg: #f2eee2; --ink: #26301f; --accent: var(--loden-500); --gold: #8a6a35; --loden: var(--loden-500);
   --surf: #faf7ee; --line: #2f3a28;
   --rule: #d3ceba; --muted: #66705c; --chip: #e3e0cf;
   --m-grass: #e2e3c5; --m-forest: #7e8a4e; --m-field: #e7dcb4; --m-water: #b0c3c3;
@@ -103,17 +103,16 @@ input, select, textarea, button { font-family: Lora, Georgia, serif; }
 /* Dämmerung — Waldnacht statt Pergament: blendet nicht, wenn das Licht
    schwindet, bleibt aber farbig lesbar (Moos, Messing, Signal). */
 .app[data-licht="daemmerung"] {
-  --bg: var(--waldnacht); --ink: #d9d2bd; --accent: var(--moos); --gold: #c9a24f; --loden: #2b3626;
-  --surf: #1e261b; --line: #55634a;
-  --rule: #2c3628; --muted: #9a9f88; --chip: #262f22;
-  --signal: #e0703a;
+  --bg: var(--waldnacht); --ink: var(--birkenrind); --accent: var(--moos); --gold: var(--messing); --loden: var(--loden-500);
+  --surf: #17231b; --line: #4a5a44;
+  --rule: #24302a; --muted: #9c9a88; --chip: #1e2a22;
   --m-grass: #2a3121; --m-forest: #1b2215; --m-field: #3a3524; --m-water: #22323a;
-  --m-road: #6d6656; --m-stroke: #4d5640; --m-label: #d9d2bd;
+  --m-road: #6d6656; --m-stroke: #4d5640; --m-label: #e8e2d0;
 }
 
 .app[data-licht="daemmerung"][data-mapstyle="sat"] {
   --m-grass: #232a1b; --m-forest: #121a0e; --m-field: #3b3622; --m-water: #121c22;
-  --m-road: #5f5848; --m-stroke: #4a4436; --m-label: #d9d2bd;
+  --m-road: #5f5848; --m-stroke: #4a4436; --m-label: #e8e2d0;
 }
 
 /* Rotlicht — nur Rottöne, gedimmt: schont die Nachtsicht auf dem Ansitz.
