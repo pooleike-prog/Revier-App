@@ -4,7 +4,6 @@
 
 import { REVIER_LAT, REVIER_LNG } from '../data/constants';
 import type { BuechsenlichtMode } from '../data/settings';
-import type { NachtzeitProfil } from '../data/nachtzeit';
 
 const RAD = Math.PI / 180;
 const J1970 = 2440588;
@@ -114,13 +113,12 @@ export interface LightInfo {
   moonHigh: string;
   moonAge: string;
   moonVerdict: string;
-  nightBan: string;
   rule: string;
   /** Header subtitle on the Ansitz screen. */
   sub: string;
 }
 
-export function computeLight(dayOff: number, mode: BuechsenlichtMode, nacht: NachtzeitProfil): LightInfo {
+export function computeLight(dayOff: number, mode: BuechsenlichtMode): LightInfo {
   const lat = REVIER_LAT, lng = REVIER_LNG;
   const base = new Date(Date.now() + dayOff * DAYMS);
 
@@ -224,22 +222,9 @@ export function computeLight(dayOff: number, mode: BuechsenlichtMode, nacht: Nac
     moonHigh: maxAlt > 0 ? 'max ' + Math.round(maxAlt) + '° hoch' : 'bleibt unter Horizont',
     moonAge: Math.round(ph * 29.53) + '. Mondtag',
     moonVerdict: verdict,
-    nightBan: clock(new Date(sunSet.getTime() + nacht.nachSU * 60000)) + ' – ' + clock(new Date(sunRise.getTime() - nacht.vorSA * 60000)),
-    rule: (mode === 'daemmerung'
-      ? 'Büchsenlicht = bürgerliche Dämmerung (Sonne 6° unter dem Horizont), für den Revierstandort gerechnet. '
-      : 'Büchsenlicht = Sonnenaufgang/-untergang ± ' + off + ' min (in Einstellungen umstellbar). ')
-      + nachtRegel(nacht),
+    rule: mode === 'daemmerung'
+      ? 'Büchsenlicht = bürgerliche Dämmerung (Sonne 6° unter dem Horizont), für den Revierstandort gerechnet.'
+      : 'Büchsenlicht = Sonnenaufgang/-untergang ± ' + off + ' min (in Einstellungen umstellbar).',
     sub: 'Büchsenlicht ' + clock(blS) + ' – ' + clock(blE),
   };
 }
-
-/** Hinweistext zum Nachtzeit-Verbot nach Landesrecht. Zeigt an, erlaubt nichts. */
-function nachtRegel(n: NachtzeitProfil): string {
-  return 'Nachtzeit (' + n.name + '): ' + stunden(n.nachSU) + ' nach Sonnenuntergang bis ' + stunden(n.vorSA)
-    + ' vor Sonnenaufgang, gesperrt für ' + n.gesperrt + '. '
-    + (n.ausnahmen ? n.ausnahmen + ' ' : '')
-    + 'Grundlage: ' + n.rechtsgrundlage + (n.sicherheit === 'unsicher' ? ' (nicht geprüft)' : '') + '. '
-    + 'Keine Rechtsauskunft; Zulassungen und Anordnungen der Jagdbehörde sind nicht berücksichtigt.';
-}
-
-const stunden = (min: number) => (min / 60).toLocaleString('de-DE') + ' h';

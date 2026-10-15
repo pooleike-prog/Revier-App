@@ -119,10 +119,6 @@ export function AnsitzScreen({ light }: { light: LightInfo }) {
 
         <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', borderTop: '1px solid var(--rule)', paddingTop: 10 }}>
           <div>
-            <div style={caption}>Nachtjagd gesperrt</div>
-            <div style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{light.nightBan}</div>
-          </div>
-          <div>
             <div style={caption}>Wind</div>
             <div style={{ fontSize: 13, fontWeight: 600 }}>SW 12 km/h</div>
           </div>
