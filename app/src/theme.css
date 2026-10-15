@@ -32,9 +32,14 @@
   --color-accent-800: #5a3b0a;
   --color-accent-900: #3a270d;
 
-  --font-heading: "Cormorant Garamond", system-ui, sans-serif;
+  /* Fira Sans Condensed für die Bedienung: schmal, kräftig, auch klein und
+     bei Nässe auf dem Display lesbar. IBM Plex Mono für Zahlen — Uhrzeiten,
+     Entfernungen, Flächen —, damit Ziffern in Spalten untereinander stehen. */
+  --font-ui: "Fira Sans Condensed", "Roboto Condensed", system-ui, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "Roboto Mono", monospace;
+  --font-heading: var(--font-ui);
   --font-heading-weight: 600;
-  --font-body: "Lora", system-ui, sans-serif;
+  --font-body: var(--font-ui);
 
   --space-1: 4.6px;
   --space-2: 9.2px;
@@ -58,7 +63,7 @@ body {
   margin: 0;
   background: #e6e1d2;
   color: var(--color-text);
-  font-family: Lora, Georgia, serif;
+  font-family: var(--font-ui);
   font-size: 15px;
   line-height: 1.55;
   font-weight: 400;
@@ -68,12 +73,18 @@ a { color: #3c4a35; }
 a:hover { color: #26301f; }
 img { display: block; max-width: 100%; }
 * { -webkit-tap-highlight-color: transparent; }
-input, select, textarea, button { font-family: Lora, Georgia, serif; }
+input, select, textarea, button { font-family: var(--font-ui); }
 ::selection { background: #3c4a3526; }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
-.serif { font-family: 'Cormorant Garamond', Cormorant, Georgia, serif; }
+/* Überschriften. Der Klassenname stammt aus der Zeit mit Cormorant Garamond. */
+.serif { font-family: var(--font-ui); letter-spacing: 0; }
+
+/* Zahlen in IBM Plex Mono. `.num` für neuen Code; die bestehenden Stellen
+   tragen schon `font-variant-numeric: tabular-nums` inline und werden
+   darüber erkannt, damit dafür nicht jede Datei angefasst werden muss. */
+.num, [style*="tabular-nums"] { font-family: var(--font-num); letter-spacing: 0; }
 
 /* ── App palette ────────────────────────────────────────────────────────────
    Drei Lichtmodi, im Automatikbetrieb nach Sonnenstand (lib/lightMode.ts):

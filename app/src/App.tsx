@@ -151,7 +151,7 @@ function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
       data-mapstyle={s.mapStyle}
       style={{
         display: 'flex', flexDirection: 'column',
-        background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'Lora, Georgia, serif', overflow: 'hidden',
+        background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font-ui)', overflow: 'hidden',
         // Im Vollbild bis an die Ränder, aber nicht unter Kamera-Ausschnitt
         // und Gestenleiste.
         ...(fullscreen
