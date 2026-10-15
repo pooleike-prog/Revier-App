@@ -99,7 +99,15 @@ export function KarteScreen() {
         style={{ position: 'absolute', inset: 0, touchAction: 'none', cursor: 'crosshair' }}
       >
         <div style={mapWrapStyle(s.pan, s.zoom)}>
-          <svg width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ display: 'block', position: 'absolute', left: 0, top: 0 }}>
+          {/* overflow sichtbar: Reviere und Schläge dürfen über das Kartenraster
+              hinausreichen — mit der echten Karte liegen sie meist daneben. */}
+          <svg width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ display: 'block', position: 'absolute', left: 0, top: 0, overflow: 'visible' }}>
+            <defs>
+              {/* Schraffur des aktiven Reviers, bildschirmfest gegen den Zoom. */}
+              <pattern id="rk-revier-schraffur" width={9} height={9} patternUnits="userSpaceOnUse" patternTransform={`rotate(45) scale(${1 / s.zoom})`}>
+                <line x1={0} y1={0} x2={0} y2={9} stroke="var(--accent)" strokeWidth={1.5} strokeOpacity={0.45} />
+              </pattern>
+            </defs>
             <MapTerrain detailed />
 
             {s.fieldData.map(f => (
@@ -118,10 +126,13 @@ export function KarteScreen() {
               <polygon
                 key={r.id}
                 points={r.points}
-                fill="none"
+                fill={r.id === act.id ? 'url(#rk-revier-schraffur)' : 'color-mix(in oklab, var(--m-label) 8%, transparent)'}
                 stroke={r.id === act.id ? 'var(--accent)' : 'var(--m-label)'}
                 strokeWidth={r.id === act.id ? 3 : 2}
                 strokeDasharray={r.kind === 'eigen' ? '0' : '10 6'}
+                vectorEffect="non-scaling-stroke"
+                // Die Füllung darf Schläge und Marker darunter nicht abfangen.
+                pointerEvents="none"
               />
             ))}
           </svg>
