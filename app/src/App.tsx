@@ -5,11 +5,13 @@ import { DEVICE_H, DEVICE_W } from './data/constants';
 import { BUECHSENLICHT } from './data/settings';
 import type { CtrlMode, Screen } from './types';
 import { computeLight } from './lib/astro';
+import { LICHT_BAR } from './lib/lightMode';
+import { useLicht } from './state/useLicht';
 import { fmt, ha } from './lib/geo';
 import { activeRevier, currentJagd, kindLabel, treibenOf } from './lib/selectors';
 import { logoCrop } from './lib/assets';
 import { AndroidDevice } from './components/AndroidDevice';
-import { Header } from './components/Header';
+import { Header, NEXT_LICHT } from './components/Header';
 import { NavBar } from './components/NavBar';
 import { KarteScreen } from './screens/KarteScreen';
 import { PlanungScreen } from './screens/PlanungScreen';
@@ -43,6 +45,7 @@ function Shell() {
  *  Umschalter für die beiden Bedienvarianten. */
 function Canvas() {
   const { state: s, set } = useApp();
+  const licht = useLicht(s.licht);
 
   return (
     <div className="canvas" style={{
@@ -79,7 +82,7 @@ function Canvas() {
       </div>
 
       <div className="stage">
-        <AndroidDevice width={DEVICE_W} height={DEVICE_H} dark={s.night}>
+        <AndroidDevice width={DEVICE_W} height={DEVICE_H} dark={licht !== 'tag'}>
           <AppFrame />
         </AndroidDevice>
       </div>
@@ -111,9 +114,10 @@ function Canvas() {
 function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
   const { state: s, set } = useApp();
   const light = useMemo(() => computeLight(s.dayOff, BUECHSENLICHT), [s.dayOff]);
+  const licht = useLicht(s.licht);
 
-  // Systemleisten mitfärben, damit der Rotlichtmodus nicht am Rand aufhört.
-  useEffect(() => { setThemeColor(s.night); }, [s.night]);
+  // Systemleisten mitfärben, damit Dämmerung und Rotlicht nicht am Rand aufhören.
+  useEffect(() => { setThemeColor(LICHT_BAR[licht]); }, [licht]);
 
   const act = activeRevier(s);
   const jagd = currentJagd(s);
@@ -143,7 +147,7 @@ function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
   return (
     <div
       className="app"
-      data-night={s.night ? '1' : '0'}
+      data-licht={licht}
       data-mapstyle={s.mapStyle}
       style={{
         display: 'flex', flexDirection: 'column',
@@ -159,11 +163,13 @@ function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
           : { position: 'relative' as const, height: '100%' }),
       }}
     >
+      <RotlichtFilter />
       <Header
         title={title[s.screen]}
         sub={sub[s.screen]}
-        night={s.night}
-        onToggleNight={() => set(p => ({ night: !p.night }))}
+        licht={licht}
+        auto={s.licht === 'auto'}
+        onCycleLicht={() => set({ licht: NEXT_LICHT[licht] })}
       />
 
       {s.screen === 'karte' && <KarteScreen />}
@@ -182,5 +188,22 @@ function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
         })}
       />
     </div>
+  );
+}
+
+/** Echte Farbmatrix für den Rotlichtmodus, keine Tönung darüber: Grün und Blau
+ *  werden auf null gesetzt, ihre Helligkeit wandert in den Rotkanal. So bleibt
+ *  auch in Kartenbild, Logo und hart gesetzten Farben nichts übrig, was die
+ *  Stäbchen im Auge blendet. theme.css hängt den Filter an `.app`. */
+function RotlichtFilter() {
+  return (
+    <svg width={0} height={0} aria-hidden style={{ position: 'absolute' }}>
+      <filter id="rotlicht-matrix" colorInterpolationFilters="sRGB">
+        <feColorMatrix
+          type="matrix"
+          values={'0.55 0.35 0.10 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0'}
+        />
+      </filter>
+    </svg>
   );
 }

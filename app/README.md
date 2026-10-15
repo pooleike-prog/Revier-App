@@ -47,7 +47,7 @@ Ausprobieren des Vollbilds im Browser: `?app` an die Adresse hängen.
 src/
   App.tsx                 Präsentationsseite, Geräterahmen, Kopfzeile, Reiterwahl
   theme.css               Design-Tokens: Classical-System + .app-Palette
-                          (Satellit- und Rotlicht-Varianten als data-Attribute)
+                          (Satellit und die drei Lichtmodi als data-Attribute)
   state/store.tsx         ein Zustandsobjekt mit setState-artigem `set`,
                           dazu `flash` (Toast) und `addMarker`
   types.ts                Datenmodell

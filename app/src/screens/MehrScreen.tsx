@@ -4,6 +4,7 @@ import { ICON } from '../data/constants';
 import { DOWNLOADS } from '../data/seed';
 import { WERBEFREI } from '../data/settings';
 import type { CtrlMode, MarkerType, SignMode } from '../types';
+import type { LichtWahl } from '../lib/lightMode';
 import { block, chip } from '../lib/styles';
 import { Icon } from '../components/Icon';
 
@@ -90,16 +91,12 @@ export function MehrScreen() {
       <div style={divider} />
       <div style={sectionLabel}>Darstellung</div>
       <div style={sectionBody}>
-        <button onClick={() => set({ night: false })} style={block(!s.night)}>
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>Tagmodus</div>
-          <div style={{ fontSize: 12, lineHeight: 1.4, color: 'var(--muted)' }}>Hoher Kontrast für Sonnenlicht.</div>
-        </button>
-        <button onClick={() => set({ night: true })} style={block(s.night)}>
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>Rotlichtmodus</div>
-          <div style={{ fontSize: 12, lineHeight: 1.4, color: 'var(--muted)' }}>
-            Nur Rottöne, gedimmt — schont die Nachtsicht auf dem Ansitz.
-          </div>
-        </button>
+        {LICHT_OPTIONEN.map(o => (
+          <button key={o.id} onClick={() => set({ licht: o.id })} style={block(s.licht === o.id)}>
+            <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>{o.title}</div>
+            <div style={{ fontSize: 12, lineHeight: 1.4, color: 'var(--muted)' }}>{o.desc}</div>
+          </button>
+        ))}
       </div>
 
       <div style={divider} />
@@ -202,3 +199,17 @@ export function MehrScreen() {
     </div>
   );
 }
+
+const LICHT_OPTIONEN: Array<{ id: LichtWahl; title: string; desc: string }> = [
+  {
+    id: 'auto', title: 'Automatisch nach Sonnenstand',
+    desc: 'Tag ab 6° Sonnenhöhe, Rotlicht ab Ende der bürgerlichen Dämmerung (−6°), dazwischen Dämmerung. '
+      + 'Schaltet auch ohne Empfang.',
+  },
+  { id: 'tag', title: 'Tag', desc: 'Hoher Kontrast für Sonnenlicht.' },
+  { id: 'daemmerung', title: 'Dämmerung', desc: 'Dunkler Grund, gedämpfte Farben — blendet nicht, wenn das Licht schwindet.' },
+  {
+    id: 'rotlicht', title: 'Rotlicht',
+    desc: 'Nur Rottöne, gedimmt, auch im Kartenbild — schont die Nachtsicht auf dem Ansitz.',
+  },
+];
