@@ -7,6 +7,7 @@ import type { MapStyle, Point } from '../types';
 import { kachelProtokollAnmelden } from '../lib/kachelspeicher';
 import { stilFuer } from '../lib/kartenquellen';
 import { mapLibreZoom, pxToLngLat, screenToPx } from '../lib/projection';
+import { useApp } from '../state/store';
 
 /* Die echte Karte unter der Zeichenebene. MapLibre bekommt keine eigenen
    Gesten: Verschieben und Zoomen bleiben bei der App (pan/zoom im Zustand),
@@ -37,6 +38,7 @@ export function RealMap({ pan, zoom, art, night, onMap, vermerkOben }: Props) {
   view.current = { pan, zoom };
   const [vermerk, setVermerk] = useState('');
   const [fehler, setFehler] = useState(false);
+  const { anker, luftbild } = useApp().state;
 
   const folgen = () => {
     const m = map.current, el = box.current;
@@ -78,15 +80,15 @@ export function RealMap({ pan, zoom, art, night, onMap, vermerkOben }: Props) {
 
   useEffect(() => {
     let aktuell = true;
-    stilFuer(art).then(({ style, vermerk: v }) => {
+    stilFuer(art, luftbild).then(({ style, vermerk: v }) => {
       if (!aktuell || !map.current) return;
       map.current.setStyle(style, { diff: false });
       setVermerk(v);
     });
     return () => { aktuell = false; };
-  }, [art]);
+  }, [art, luftbild]);
 
-  useEffect(folgen, [pan.x, pan.y, zoom]);
+  useEffect(folgen, [pan.x, pan.y, zoom, anker.lat, anker.lng]);
 
   const filterId = art === 'sat' ? 'rk-rot-sat' : 'rk-rot-topo';
 

@@ -75,7 +75,7 @@ Die Karte ist MapLibre GL JS (BSD-Lizenz) mit offenen, schlüsselfreien Quellen:
 | Ansicht | Quelle | Lizenz | Offline vorab |
 |---|---|---|---|
 | Topografie | basemap.de Relief (BKG), Vektorkacheln mit Höhenlinien, ganz DE | CC BY 4.0 | ja, bis Stufe 16 |
-| Satellit | DOP20 LGLN Niedersachsen (20 cm Luftbild, WMS) | CC BY 4.0 | ja, bis Stufe 17 |
+| Satellit | DOP20 der Länder NI, NRW, BB/BE, BY (20 cm Luftbild, WMS) | CC BY 4.0 / dl-de | ja, bis Stufe 17 |
 | Ausweiche | OpenTopoMap, wenn basemap.de nicht lädt | CC BY-SA | nein, nur Angesehenes |
 
 - `components/RealMap.tsx` — die Karte unter der Zeichenebene. Sie hat keine
@@ -89,6 +89,14 @@ Die Karte ist MapLibre GL JS (BSD-Lizenz) mit offenen, schlüsselfreien Quellen:
 - **OFF** auf der Karte lädt das aktive Revier plus 300 m Rand für den
   gewählten Stil (je etwa 850 Kacheln beim 1043-ha-Demo-Revier). Ein zweiter
   Druck bricht ab.
+- **Revierlage** (REV → „Revier auf echte Karte setzen“): Ort per Suche
+  (Photon, OSM-Daten) oder GPS. *Verlegen* setzt den Anker so, dass die
+  Revier-Mitte dort liegt — alles andere wandert mit. *Springen* zeigt nur die
+  Karte dort, um ein weiteres Revier an seiner Stelle einzuzeichnen. Ein Tipp
+  auf ein Revier in der Liste führt die Karte hin.
+- **Luftbild je Land**: NI, NRW, BB/BE, BY (`LUFTBILD` in `lib/kartenquellen.ts`),
+  gewählt nach dem Bundesland des Suchtreffers oder von Hand.
+- **Zwei-Finger-Zoom** um die Fingermitte (`usePinch` in `lib/mapInteraction.ts`).
 - **Rotlicht** filtert die Kacheln mit einer echten Farbmatrix (nur Rotkanal,
   Topografie invertiert), nicht mit einer Tönung.
 - Sentinel-2 von EOX ist bewusst nicht dabei: nur nicht-kommerziell frei
@@ -135,12 +143,12 @@ Die Karte ist MapLibre GL JS (BSD-Lizenz) mit offenen, schlüsselfreien Quellen:
 
 ## Nächste Schritte in Richtung Produktion
 
-- **Revier verorten**: Anker je Revier statt fest in `settings.ts`, gesetzt
-  über Adresssuche oder GPS; danach Marker, Grenzen und Schläge als echte
-  Koordinaten speichern statt als Rasterpixel.
-- **Luftbild weiterer Länder** (NRW, Brandenburg, Hessen …) als Einträge in
-  `lib/kartenquellen.ts`, gewählt nach Lage des Reviers.
-- **Zwei-Finger-Zoom** auf der Karte.
+- **Echte Koordinaten speichern**: Marker, Grenzen und Schläge als lng/lat
+  statt als Rasterpixel. Bis dahin gilt der Maßstab 12 m/px am Anker; Reviere,
+  die mehr als etwa 100 km vom Anker entfernt liegen, messen Flächen um einige
+  Prozent ungenau.
+- **Luftbild weiterer Länder** (Hessen, Sachsen, Schleswig-Holstein …), sobald
+  Dienst und Lizenz geprüft sind.
 - **Jagdzeiten je Bundesland** konfigurierbar machen (16 Varianten), dazu
   Elterntierschutz und behördliche Abweichungen.
 - **Flächenteilung** als Polylinien-Schnitt, damit auch einbuchtige Schläge

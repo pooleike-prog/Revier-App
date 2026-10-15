@@ -5,6 +5,7 @@ import { initialState } from '../data/seed';
 import { TYPES } from '../data/constants';
 import { gps } from '../lib/geo';
 import { load, save, clear } from './persist';
+import { setAnker } from '../lib/projection';
 
 type Patch = Partial<AppState> | ((s: AppState) => Partial<AppState>);
 
@@ -28,6 +29,8 @@ export function typeDef(id: MarkerType) {
 export function AppProvider({ children }: { children: ReactNode }) {
   // Gespeicherten Stand übernehmen, sonst mit dem Demo-Revier starten.
   const [state, setState] = useState<AppState>(() => ({ ...initialState, ...load() }));
+  // Vor jedem Zeichnen: Rasterpixel und Erde müssen zum gespeicherten Anker passen.
+  setAnker(state.anker);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

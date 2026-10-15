@@ -12,7 +12,7 @@ const VERSION = 1;
 const FIELDS = [
   'markers', 'fieldData', 'revierData', 'activeRevier', 'journal',
   'jagden', 'treiben', 'posts', 'arrows', 'extents',
-  'night', 'mapStyle', 'ctrl', 'zeichen', 'openGroups',
+  'night', 'mapStyle', 'ctrl', 'zeichen', 'openGroups', 'anker', 'luftbild',
 ] as const;
 
 type Persisted = Pick<AppState, (typeof FIELDS)[number]>;

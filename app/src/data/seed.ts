@@ -1,4 +1,5 @@
 import type { AppState } from '../types';
+import { KARTEN_ANKER } from './settings';
 
 /* Demo-Revier für den Prototyp. Alle Koordinaten liegen im 400 × 520 großen
    Kartenraster bei 12 m/px. */
@@ -12,6 +13,8 @@ export const initialState: AppState = {
 
   tool: null, radial: false, aim: null,
   pan: { x: 6, y: 40 }, zoom: 1,
+  anker: { ...KARTEN_ANKER, ort: 'Demo-Revier bei Hannover' },
+  luftbild: 'NI',
 
   sheet: null, sel: null, selField: null, selPost: null,
   drawing: null, pendingRevier: null, rName: 'Revier Neu',

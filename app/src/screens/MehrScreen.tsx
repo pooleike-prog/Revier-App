@@ -167,14 +167,16 @@ export function MehrScreen() {
         <div style={{ border: '2px solid var(--rule)', padding: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Topografie</div>
           <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--muted)' }}>
-            OpenStreetMap-Vektorkacheln (ODbL), eigener Stil mit Höhenlinien aus DGM1. Offline als PMTiles.
+            basemap.de Relief des BKG (CC BY 4.0): amtliche Vektorkacheln mit Höhenlinien für ganz Deutschland.
+            Ausweiche OpenTopoMap (CC BY-SA). Angesehene Kacheln bleiben offline auf dem Gerät.
           </div>
         </div>
         <div style={{ border: '2px solid var(--rule)', padding: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Satellit / Orthofoto</div>
           <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--muted)' }}>
-            DOP20 des LGLN Niedersachsen als Open Data (Datenlizenz Deutschland 2.0, kommerziell nutzbar,
-            Namensnennung). Andere Länder je Landesamt nachziehen; Sentinel-2 als flächige Rückfallebene.
+            DOP20 der Landesvermessung als Open Data: Niedersachsen (CC BY 4.0), Nordrhein-Westfalen
+            (dl-de/zero-2-0), Brandenburg/Berlin (dl-de/by-2-0), Bayern (CC BY 4.0). Weitere Länder folgen,
+            sobald ihr Luftbild frei nutzbar ist. Ortssuche über Photon (Daten © OpenStreetMap-Mitwirkende).
           </div>
         </div>
         <div style={{ border: '1px solid var(--line)', padding: 12 }}>

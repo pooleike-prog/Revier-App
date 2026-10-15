@@ -7,7 +7,7 @@ import type { Marker, MarkerType } from '../types';
 import { compass, fmt, gps, ha, parse } from '../lib/geo';
 import { activeRevier, visibleRevierIds } from '../lib/selectors';
 import { chip, ctrlBox, pinStyle } from '../lib/styles';
-import { MAP_H, MAP_W, mapWrapStyle, toMap, usePan } from '../lib/mapInteraction';
+import { MAP_H, MAP_W, mapWrapStyle, toMap, usePan, usePinch } from '../lib/mapInteraction';
 import { RealMap } from '../components/RealMap';
 import { kachelAdressen } from '../lib/kartenquellen';
 import { vorladen } from '../lib/kachelspeicher';
@@ -40,6 +40,7 @@ function zoomUm(pan: { x: number; y: number }, alt: number, neu: number) {
 export function KarteScreen() {
   const { state: s, set, flash, addMarker } = useApp();
   const pan = usePan(s.pan, p => set({ pan: p }));
+  const pinch = usePinch({ pan: s.pan, zoom: s.zoom }, (p, z) => set({ pan: p, zoom: z }), ZOOM_MIN, ZOOM_MAX);
   const karte = useRef<MapLibreMap | null>(null);
   const laden = useRef<AbortController | null>(null);
   const [offline, setOffline] = useState('');
@@ -67,13 +68,24 @@ export function KarteScreen() {
     : s.tool ? typeDef(s.tool).label + ' — Stelle auf der Karte antippen'
     : 'Werkzeug wählen, dann Karte antippen';
 
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (pinch.down(e)) { pan.end(); return; }
+    pan.start(e);
+  };
+
+  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    pinch.up(e);
+    pan.end();
+  };
+
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (pinch.move(e)) return;
     if (s.measure) { set({ measTo: toMap(e, s.pan, s.zoom) }); return; }
     pan.move(e);
   };
 
   const onMapClick = (e: ReactMouseEvent<HTMLDivElement>) => {
-    if (pan.moved()) return;
+    if (pan.moved() || pinch.recent()) return;
     const pt = toMap(e, s.pan, s.zoom);
     if (s.measure) { set({ measFrom: pt, measTo: pt }); return; }
     if (s.drawing) { set(st => ({ drawing: (st.drawing ?? []).concat([[pt.x, pt.y]]) })); return; }
@@ -143,18 +155,24 @@ export function KarteScreen() {
       />
 
       <div
-        onPointerDown={pan.start}
+        onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={pan.end}
+        onPointerUp={onPointerUp}
         // Auch beim Verlassen der Karte lösen — sonst bliebe die Geste hängen
         // und ein folgendes Tippen würde als Ziehen verworfen.
-        onPointerCancel={pan.end}
-        onPointerLeave={pan.end}
+        onPointerCancel={onPointerUp}
+        onPointerLeave={onPointerUp}
         onClick={onMapClick}
         style={{ position: 'absolute', inset: 0, touchAction: 'none', cursor: 'crosshair' }}
       >
         <div style={mapWrapStyle(s.pan, s.zoom)}>
-          <svg width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ display: 'block', position: 'absolute', left: 0, top: 0 }}>
+          <svg width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ display: 'block', position: 'absolute', left: 0, top: 0, overflow: 'visible' }}>
+            {/* Schraffur des aktiven Reviers — Abstand bleibt bei jedem Zoom gleich. */}
+            <defs>
+              <pattern id="rk-schraffur" patternUnits="userSpaceOnUse" width={9} height={9} patternTransform={`scale(${inv}) rotate(45)`}>
+                <line x1={0} y1={0} x2={0} y2={9} stroke="var(--accent)" strokeWidth={2} />
+              </pattern>
+            </defs>
             {s.fieldData.map(f => (
               <polygon
                 key={f.id}
@@ -173,7 +191,9 @@ export function KarteScreen() {
               <polygon
                 key={r.id}
                 points={r.points}
-                fill="none"
+                fill={r.id === act.id ? 'url(#rk-schraffur)' : 'var(--m-label)'}
+                fillOpacity={r.id === act.id ? 0.35 : 0.06}
+                pointerEvents="none"
                 stroke={r.id === act.id ? 'var(--accent)' : 'var(--m-label)'}
                 strokeWidth={r.id === act.id ? 3 : 2}
                 strokeDasharray={r.kind === 'eigen' ? '0' : '10 6'}

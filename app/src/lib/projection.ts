@@ -19,10 +19,29 @@ const mercY = (lat: number) => {
 const lngOf = (x: number) => x * 360 - 180;
 const latOf = (y: number) => 360 / Math.PI * Math.atan(Math.exp((0.5 - y) * 2 * Math.PI)) - 90;
 
-const X0 = mercX(KARTEN_ANKER.lng);
-const Y0 = mercY(KARTEN_ANKER.lat);
-/** Mercator-Einheiten je Rasterpixel. */
-const K = M_PER_PX / (ERDUMFANG * Math.cos(KARTEN_ANKER.lat * Math.PI / 180));
+/** Mercator-Einheiten je Rasterpixel bei einer Ankerbreite. */
+const kFuer = (lat: number) => M_PER_PX / (ERDUMFANG * Math.cos(lat * Math.PI / 180));
+
+let X0 = mercX(KARTEN_ANKER.lng);
+let Y0 = mercY(KARTEN_ANKER.lat);
+let K = kFuer(KARTEN_ANKER.lat);
+
+/** Setzt den Anker — die Store-Schicht ruft das mit dem gespeicherten Anker
+ *  auf, bevor irgendetwas gezeichnet oder umgerechnet wird. */
+export function setAnker(a: { lat: number; lng: number }): void {
+  X0 = mercX(a.lng);
+  Y0 = mercY(a.lat);
+  K = kFuer(a.lat);
+}
+
+/** Der Anker, bei dem der Rasterpunkt `px` auf `ziel` zu liegen kommt — so
+ *  wandert ein Revier samt allem, was dazugehört, an seine echte Stelle. */
+export function ankerFuer(ziel: { lat: number; lng: number }, px: { x: number; y: number }): { lat: number; lng: number } {
+  let lat = ziel.lat;
+  for (let i = 0; i < 3; i++) lat = latOf(mercY(ziel.lat) - (px.y - MAP_H / 2) * kFuer(lat));
+  const k = kFuer(lat);
+  return { lat, lng: lngOf(mercX(ziel.lng) - (px.x - MAP_W / 2) * k) };
+}
 
 export interface LngLat { lng: number; lat: number }
 

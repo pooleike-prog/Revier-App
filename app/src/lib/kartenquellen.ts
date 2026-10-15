@@ -1,5 +1,5 @@
 import type { Map as MapLibreMap, StyleSpecification } from 'maplibre-gl';
-import type { MapStyle } from '../types';
+import type { LuftbildLand, MapStyle } from '../types';
 import { holen, rk } from './kachelspeicher';
 import { tileBbox3857, tilesFor } from './projection';
 
@@ -9,9 +9,8 @@ import { tileBbox3857, tilesFor } from './projection';
 
    Topografie  basemap.de Relief (BKG) — amtliche Vektorkacheln mit Höhenlinien
                und Schummerung, ganz Deutschland, CC BY 4.0.
-   Satellit    DOP20 des LGLN Niedersachsen — Luftbild mit 20 cm Bodenauflösung,
-               CC BY 4.0. Andere Länder folgen als eigene Einträge (NRW, BB, HE,
-               … bieten ihr DOP ebenfalls offen an).
+   Satellit    DOP20 der Landesvermessung — Luftbild mit 20 cm Bodenauflösung,
+               je Bundesland eine Quelle (siehe LUFTBILD).
    Ausweiche   OpenTopoMap (CC BY-SA), falls basemap.de nicht lädt. Nur das, was
                angesehen wird, landet im Speicher — Massendownloads sind dort
                nicht erwünscht, deshalb lädt „Revier offline speichern“ sie nicht. */
@@ -20,15 +19,35 @@ const JAHR = new Date().getFullYear();
 
 export const BASEMAP_DE_RELIEF = 'https://sgx.geodatenzentrum.de/gdz_basemapde_vektor/styles/bm_web_top.json';
 
-export const LGLN_DOP20 =
-  'https://opendata.lgln.niedersachsen.de/doorman/noauth/dop_wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap'
-  + '&LAYERS=ni_dop20&STYLES=&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/jpeg';
+const wms = (base: string, layer: string) =>
+  `${base}${base.includes('?') ? '&' : '?'}SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap`
+  + `&LAYERS=${layer}&STYLES=&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/jpeg`;
+
+/** Offene Luftbilder (DOP20) der Länder. Jede Adresse ist gegen die
+ *  GetCapabilities des Dienstes geprüft: Ebene, EPSG:3857 und Lizenz. Länder
+ *  ohne Eintrag bieten ihr DOP nicht frei oder nicht geklärt an. */
+export const LUFTBILD: Record<LuftbildLand, { name: string; url: string; vermerk: string }> = {
+  NI: { name: 'Niedersachsen', url: wms('https://opendata.lgln.niedersachsen.de/doorman/noauth/dop_wms', 'ni_dop20'), vermerk: `© GeoBasis-DE/LGLN ${JAHR} · CC BY 4.0` },
+  NW: { name: 'Nordrhein-Westfalen', url: wms('https://www.wms.nrw.de/geobasis/wms_nw_dop', 'nw_dop_rgb'), vermerk: `© Geobasis NRW ${JAHR} · dl-de/zero-2-0` },
+  BB: { name: 'Brandenburg und Berlin', url: wms('https://isk.geobasis-bb.de/mapproxy/dop20c/service/wms', 'bebb_dop20c'), vermerk: '© GeoBasis-DE/LGB, dl-de/by-2-0 · © Geoportal Berlin, dl-de/by-2-0' },
+  BY: { name: 'Bayern', url: wms('https://geoservices.bayern.de/od/wms/dop/v1/dop20', 'by_dop20c'), vermerk: '© Bayerische Vermessungsverwaltung · CC BY 4.0' },
+};
+export const LAENDER = Object.keys(LUFTBILD) as LuftbildLand[];
+
+/** Bundesland (wie es eine Ortssuche liefert) → Luftbildquelle. */
+export function luftbildFuer(bundesland: string | undefined): LuftbildLand | null {
+  const n = (bundesland ?? '').toLowerCase();
+  if (n.includes('niedersachsen') || n.includes('bremen')) return 'NI';
+  if (n.includes('nordrhein')) return 'NW';
+  if (n.includes('brandenburg') || n.includes('berlin')) return 'BB';
+  if (n.includes('bayern') || n.includes('bavaria')) return 'BY';
+  return null;
+}
 
 export const OPENTOPOMAP = 'https://tile.opentopomap.org/{z}/{x}/{y}.png';
 
 export const QUELLVERMERK = {
   basemap: `© basemap.de / BKG ${JAHR} · CC BY 4.0`,
-  dop: `© GeoBasis-DE/LGLN ${JAHR} · CC BY 4.0`,
   otm: 'Kartendaten © OpenStreetMap-Mitwirkende, SRTM · Darstellung © OpenTopoMap (CC BY-SA)',
 };
 
@@ -36,6 +55,9 @@ export const QUELLVERMERK = {
 export const VORLADEN_BIS: Record<string, number> = {
   'sgx.geodatenzentrum.de': 16,
   'opendata.lgln.niedersachsen.de': 17,
+  'www.wms.nrw.de': 17,
+  'isk.geobasis-bb.de': 17,
+  'geoservices.bayern.de': 17,
 };
 
 type Style = StyleSpecification;
@@ -63,9 +85,10 @@ const rasterStil = (id: string, tiles: string, tileSize: number, maxzoom: number
 
 export const opentopomapStil = () => rasterStil('otm', OPENTOPOMAP, 256, 17, QUELLVERMERK.otm);
 
-export async function stilFuer(art: MapStyle): Promise<{ style: Style; vermerk: string }> {
+export async function stilFuer(art: MapStyle, land: LuftbildLand): Promise<{ style: Style; vermerk: string }> {
   if (art === 'sat') {
-    return { style: rasterStil('dop', LGLN_DOP20, 256, 19, QUELLVERMERK.dop), vermerk: QUELLVERMERK.dop };
+    const q = LUFTBILD[land] ?? LUFTBILD.NI;
+    return { style: rasterStil('dop-' + land, q.url, 256, 19, q.vermerk), vermerk: q.vermerk };
   }
   try {
     const buf = await holen(BASEMAP_DE_RELIEF);
