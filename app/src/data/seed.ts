@@ -14,7 +14,7 @@ export const initialState: AppState = {
   pan: { x: 6, y: 40 }, zoom: 1,
 
   sheet: null, sel: null, selField: null, selPost: null,
-  drawing: null, pendingRevier: null, rName: 'Revier Neu',
+  drawing: null, drawClosed: false, drawEdit: null, pendingRevier: null, rName: 'Revier Neu',
   toast: '', lastAdded: null, jfilter: 'Alle',
   openGroups: { schalen: true, haar: false, raub: false, feder: false },
   dayOff: 0,

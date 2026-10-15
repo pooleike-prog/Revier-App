@@ -1,15 +1,16 @@
+import { useRef } from 'react';
 import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent } from 'react';
 import { useApp, typeDef } from '../state/store';
 import { ICON, M_PER_PX } from '../data/constants';
 import type { Marker, MarkerType } from '../types';
-import { compass, fmt, gps, ha, parse } from '../lib/geo';
+import { compass, fmt, gps, parse } from '../lib/geo';
 import { activeRevier, visibleRevierIds } from '../lib/selectors';
 import { chip, ctrlBox, pinStyle } from '../lib/styles';
 import { MAP_H, MAP_W, mapWrapStyle, toMap, usePan } from '../lib/mapInteraction';
 import { MapTerrain } from '../components/MapTerrain';
 import { Icon } from '../components/Icon';
 import { Toast } from '../components/Toast';
-import { DrawPanel } from './karte/DrawPanel';
+import { Fadenkreuz, GrenzLayer, GrenzPanel, useGrenzEditor } from './karte/GrenzEditor';
 import { MarkerToolbar } from './karte/MarkerToolbar';
 import { AimOverlay, RadialFab } from './karte/AimPanel';
 
@@ -18,8 +19,10 @@ import { AimOverlay, RadialFab } from './karte/AimPanel';
 const ringed = (m: Marker) => m.type === 'ansitz' && !!m.dists && m.dists.length > 0;
 
 export function KarteScreen() {
-  const { state: s, set, flash, addMarker } = useApp();
+  const { state: s, set, addMarker } = useApp();
   const pan = usePan(s.pan, p => set({ pan: p }));
+  const box = useRef<HTMLDivElement>(null);
+  const grenze = useGrenzEditor(box);
 
   const act = activeRevier(s);
   const visIds = visibleRevierIds(s);
@@ -52,7 +55,8 @@ export function KarteScreen() {
     if (pan.moved()) return;
     const pt = toMap(e, s.pan, s.zoom);
     if (s.measure) { set({ measFrom: pt, measTo: pt }); return; }
-    if (s.drawing) { set(st => ({ drawing: (st.drawing ?? []).concat([[pt.x, pt.y]]) })); return; }
+    // Grenzpunkte setzt nur der Knopf unter dem Fadenkreuz, nicht das Antippen.
+    if (s.drawing) return;
     if (s.pickTarget) {
       // Standort für den Tagebucheintrag: den nächstgelegenen Marker benennen,
       // sonst die Koordinate.
@@ -69,12 +73,8 @@ export function KarteScreen() {
 
   const selectMarker = (id: number) => (e: ReactMouseEvent) => {
     e.stopPropagation();
+    if (s.drawing) return;
     set({ sel: id, sheet: 'marker', selField: null });
-  };
-
-  const finishDraw = () => {
-    if (!s.drawing || s.drawing.length < 3) { flash('Mindestens drei Grenzpunkte nötig.'); return; }
-    set({ pendingRevier: s.drawing, drawing: null, sheet: 'naming', rName: 'Revier Neu' });
   };
 
   const placeAtCenter = () => {
@@ -85,7 +85,7 @@ export function KarteScreen() {
   };
 
   return (
-    <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: 'var(--m-grass)' }}>
+    <div ref={box} style={{ flex: 1, position: 'relative', overflow: 'hidden', background: 'var(--m-grass)' }}>
 
       <div
         onPointerDown={pan.start}
@@ -109,7 +109,7 @@ export function KarteScreen() {
                 fill="var(--m-field)"
                 stroke={s.selField === f.id ? 'var(--accent)' : 'var(--m-stroke)'}
                 strokeWidth={s.selField === f.id ? 3 : 1}
-                onClick={(e) => { e.stopPropagation(); set({ selField: f.id, sheet: 'field', sel: null }); }}
+                onClick={(e) => { e.stopPropagation(); if (!s.drawing) set({ selField: f.id, sheet: 'field', sel: null }); }}
                 style={{ cursor: 'pointer' }}
               />
             ))}
@@ -124,15 +124,6 @@ export function KarteScreen() {
                 strokeDasharray={r.kind === 'eigen' ? '0' : '10 6'}
               />
             ))}
-
-            {s.drawing && (
-              <polyline
-                points={s.drawing.map(p => p.join(',')).join(' ')}
-                fill="rgba(111,90,35,0.12)"
-                stroke="var(--accent)"
-                strokeWidth={2}
-              />
-            )}
           </svg>
 
           {/* Fruchtart-Beschriftung an der unteren Schlagkante; kollidierende
@@ -158,12 +149,7 @@ export function KarteScreen() {
             );
           })}
 
-          {(s.drawing ?? []).map((p, i) => (
-            <div key={i} style={{
-              position: 'absolute', left: p[0] - 5, top: p[1] - 5,
-              width: 10, height: 10, background: 'var(--accent)',
-            }} />
-          ))}
+          <GrenzLayer ed={grenze} zoom={s.zoom} />
 
           {/* Schussentfernungen als gestrichelte Goldkreise, maßstabsgerecht. */}
           {s.markers.filter(m => inView(m) && ringed(m)).flatMap(m => {
@@ -288,16 +274,8 @@ export function KarteScreen() {
         {fmt(s.zoom * 100, 0)} % · {M_PER_PX} m/px · {s.mapStyle === 'topo' ? 'OSM + DGM1' : 'DOP20 LGLN'}
       </div>
 
-      {s.drawing && (
-        <DrawPanel
-          hint={s.drawing.length > 2
-            ? `${s.drawing.length} Punkte · ${fmt(ha(s.drawing), 0)} ha umschlossen`
-            : 'Grenzpunkte antippen — mindestens drei. Später auch per GPS-Track ablaufbar.'}
-          onFinish={finishDraw}
-          onUndo={() => set(p => ({ drawing: (p.drawing ?? []).slice(0, -1) }))}
-          onCancel={() => set({ drawing: null })}
-        />
-      )}
+      <Fadenkreuz ed={grenze} />
+      <GrenzPanel ed={grenze} bearbeiten={!!s.drawEdit} />
 
       {showToolbar && (
         <MarkerToolbar
@@ -309,7 +287,7 @@ export function KarteScreen() {
             measure: !p.measure, tool: null, radial: false, aim: null,
             measFrom: !p.measure ? null : p.measFrom, measTo: null,
           }))}
-          onStartDraw={() => set({ drawing: [], sheet: null, tool: null, radial: false, aim: null, screen: 'karte' })}
+          onStartDraw={() => set({ drawing: [], drawClosed: false, drawEdit: null, sheet: null, tool: null, radial: false, aim: null, screen: 'karte' })}
           onPick={(id: MarkerType) => set(p => ({ tool: p.tool === id ? null : id }))}
         />
       )}

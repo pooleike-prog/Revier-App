@@ -1,6 +1,6 @@
 import { useApp } from '../state/store';
 import type { RevierKind } from '../types';
-import { fmt, ha } from '../lib/geo';
+import { fmt, ha, parse } from '../lib/geo';
 import { activeRevier, kindLabel } from '../lib/selectors';
 import { block, chip, inputStyle, label } from '../lib/styles';
 import { sheetBody } from '../components/Sheet';
@@ -74,6 +74,19 @@ export function ReviereSheet() {
             >{text}</button>
           ))}
         </div>
+        {/* Bestehende Grenze mit dem Fadenkreuz nachbessern: Punkte greifen,
+            verschieben, auf Kanten einfügen. */}
+        <button
+          onClick={() => set(p => ({
+            drawing: parse(p.revierData.find(x => x.id === p.activeRevier)?.points ?? ''),
+            drawClosed: true, drawEdit: p.activeRevier,
+            sheet: null, tool: null, radial: false, aim: null, measure: false, screen: 'karte',
+          }))}
+          style={{
+            minHeight: 48, border: '2px solid var(--accent)', background: 'transparent',
+            color: 'var(--ink)', fontSize: 14, fontWeight: 600, textAlign: 'left', padding: '0 14px', cursor: 'pointer',
+          }}
+        >Grenze bearbeiten</button>
         {s.revierData.length > 1 && (
           <button
             onClick={() => set(p => {
@@ -94,7 +107,7 @@ export function ReviereSheet() {
       </div>
 
       <button
-        onClick={() => set({ drawing: [], sheet: null, tool: null, radial: false, aim: null, screen: 'karte' })}
+        onClick={() => set({ drawing: [], drawClosed: false, drawEdit: null, sheet: null, tool: null, radial: false, aim: null, screen: 'karte' })}
         style={{
           minHeight: 56, border: '2px solid var(--accent)', background: 'var(--accent)',
           color: '#fff', fontSize: 15, fontWeight: 600, textAlign: 'left', padding: '0 14px', cursor: 'pointer',

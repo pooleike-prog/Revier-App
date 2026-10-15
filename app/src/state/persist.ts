@@ -13,6 +13,8 @@ const FIELDS = [
   'markers', 'fieldData', 'revierData', 'activeRevier', 'journal',
   'jagden', 'treiben', 'posts', 'arrows', 'extents',
   'night', 'mapStyle', 'ctrl', 'zeichen', 'openGroups',
+  // Ein halb gezeichneter Grenzentwurf überlebt einen leeren Akku.
+  'drawing', 'drawClosed', 'drawEdit',
 ] as const;
 
 type Persisted = Pick<AppState, (typeof FIELDS)[number]>;
