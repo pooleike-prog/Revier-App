@@ -278,7 +278,7 @@ export function KarteScreen() {
             <>
               <svg
                 width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-                style={{ display: 'block', position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 5 }}
+                style={{ display: 'block', position: 'absolute', left: 0, top: 0, pointerEvents: 'none', zIndex: 5, overflow: 'visible' }}
               >
                 <line
                   x1={mFrom.x} y1={mFrom.y} x2={mTo.x} y2={mTo.y}

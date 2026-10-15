@@ -166,7 +166,7 @@ export function PlanungScreen() {
           style={{ position: 'absolute', inset: 0, touchAction: 'none', cursor: 'crosshair' }}
         >
           <div style={mapWrapStyle(s.pPan, s.pZoom)}>
-            <svg width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ display: 'block', position: 'absolute', left: 0, top: 0 }}>
+            <svg width={MAP_W} height={MAP_H} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={{ display: 'block', position: 'absolute', left: 0, top: 0, overflow: 'visible' }}>
 
               {s.fieldData.map(f => {
                 const assigned = myTreiben.find(t => t.flaeche === f.name || f.name.indexOf(t.flaeche) === 0);
