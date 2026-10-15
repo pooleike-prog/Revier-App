@@ -1,3 +1,5 @@
+import type { Bundesland } from './nachtzeit';
+
 /* Build-time settings. In the design these were the canvas tweaks — no screen
    exposes them, so they stay configuration rather than in-app controls. The
    values here are the design's defaults. */
@@ -10,3 +12,6 @@ export const WERBEFREI = false;
  *  sa30 / sa60 = Sonnenauf-/-untergang ± 30 bzw. 60 min. */
 export type BuechsenlichtMode = 'daemmerung' | 'sa30' | 'sa60';
 export const BUECHSENLICHT: BuechsenlichtMode = 'daemmerung';
+
+/** Bundesland des Reviers — bestimmt, für welches Wild die Nachtzeit gilt. */
+export const BUNDESLAND: Bundesland = 'NI';

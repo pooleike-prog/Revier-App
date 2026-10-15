@@ -2,7 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { AppProvider, useApp } from './state/store';
 import { isStandalone, setThemeColor } from './lib/platform';
 import { DEVICE_H, DEVICE_W } from './data/constants';
-import { BUECHSENLICHT } from './data/settings';
+import { BUECHSENLICHT, BUNDESLAND } from './data/settings';
+import { NACHTZEIT } from './data/nachtzeit';
 import type { CtrlMode, Screen } from './types';
 import { computeLight } from './lib/astro';
 import { fmt, ha } from './lib/geo';
@@ -110,7 +111,7 @@ function Canvas() {
 
 function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
   const { state: s, set } = useApp();
-  const light = useMemo(() => computeLight(s.dayOff, BUECHSENLICHT), [s.dayOff]);
+  const light = useMemo(() => computeLight(s.dayOff, BUECHSENLICHT, NACHTZEIT[BUNDESLAND]), [s.dayOff]);
 
   // Systemleisten mitfärben, damit der Rotlichtmodus nicht am Rand aufhört.
   useEffect(() => { setThemeColor(s.night); }, [s.night]);
