@@ -1,3 +1,5 @@
+import type { LichtWahl } from './lib/lightMode';
+
 export type Screen = 'karte' | 'planung' | 'tagebuch' | 'zeiten' | 'ansitz' | 'mehr';
 
 export type MarkerType = 'ansitz' | 'falle' | 'wechsel' | 'kirrung' | 'best' | 'salz' | 'erleg';
@@ -132,7 +134,8 @@ export type SheetKind =
 
 export interface AppState {
   screen: Screen;
-  night: boolean;
+  /** Lichtmodus: fest gewählt oder 'auto' nach Sonnenstand. */
+  licht: LichtWahl;
   mapStyle: MapStyle;
   ctrl: CtrlMode;
   zeichen: SignMode;

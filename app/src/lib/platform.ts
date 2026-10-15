@@ -20,8 +20,8 @@ export function isStandalone(): boolean {
   return false;
 }
 
-/** Färbt die Systemleisten mit: im Rotlichtmodus dunkel, sonst pergamenten. */
-export function setThemeColor(night: boolean): void {
+/** Färbt die Systemleisten im Ton des Lichtmodus mit. */
+export function setThemeColor(color: string): void {
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', night ? '#0b0908' : '#f2eee2');
+  if (meta) meta.setAttribute('content', color);
 }

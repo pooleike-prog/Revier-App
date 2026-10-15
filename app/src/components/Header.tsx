@@ -1,13 +1,20 @@
 import { logoCrop } from '../lib/assets';
+import { LICHT_KURZ, LICHT_LABEL } from '../lib/lightMode';
+import type { Licht } from '../lib/lightMode';
 
 interface Props {
   title: string;
   sub: string;
-  night: boolean;
-  onToggleNight: () => void;
+  licht: Licht;
+  /** Folgt der Modus gerade dem Sonnenstand? */
+  auto: boolean;
+  onCycleLicht: () => void;
 }
 
-export function Header({ title, sub, night, onToggleNight }: Props) {
+/** Nächster Modus beim Tippen auf den Lichtknopf: Tag → Dämmerung → Rotlicht → Tag. */
+export const NEXT_LICHT: Record<Licht, Licht> = { tag: 'daemmerung', daemmerung: 'rotlicht', rotlicht: 'tag' };
+
+export function Header({ title, sub, licht, auto, onCycleLicht }: Props) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
@@ -22,15 +29,18 @@ export function Header({ title, sub, night, onToggleNight }: Props) {
         <div style={{ fontSize: 11, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--muted)' }}>{sub}</div>
       </div>
       <button
-        onClick={onToggleNight}
-        aria-label={night ? 'Tagmodus einschalten' : 'Rotlichtmodus einschalten'}
+        onClick={onCycleLicht}
+        aria-label={`Lichtmodus ${LICHT_LABEL[licht]}${auto ? ' (automatisch)' : ''} — weiter zu ${LICHT_LABEL[NEXT_LICHT[licht]]}`}
         style={{
-          width: 46, height: 46, flex: 'none', border: '2px solid var(--line)',
-          background: 'transparent', color: 'var(--ink)', fontSize: 11, fontWeight: 600,
-          letterSpacing: '.06em', cursor: 'pointer', display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
+          width: 52, height: 52, flex: 'none', border: '2px solid var(--line)',
+          background: 'transparent', color: 'var(--ink)', fontSize: 12, fontWeight: 600,
+          letterSpacing: '.06em', cursor: 'pointer', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 1, padding: 0,
         }}
-      >{night ? 'TAG' : 'ROT'}</button>
+      >
+        <span>{LICHT_KURZ[licht]}</span>
+        {auto && <span style={{ fontSize: 9, letterSpacing: '.1em', color: 'var(--muted)' }}>AUTO</span>}
+      </button>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import type { AppState } from '../types';
 
 export const initialState: AppState = {
   screen: 'karte',
-  night: false,
+  licht: 'auto',
   mapStyle: 'topo',
   ctrl: 'werkzeug',
   zeichen: 'symbol',

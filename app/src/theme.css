@@ -32,9 +32,14 @@
   --color-accent-800: #5a3b0a;
   --color-accent-900: #3a270d;
 
-  --font-heading: "Cormorant Garamond", system-ui, sans-serif;
+  /* Fira Sans Condensed für die Bedienung: schmal, kräftig, auch klein und
+     bei Nässe auf dem Display lesbar. IBM Plex Mono für Zahlen — Uhrzeiten,
+     Entfernungen, Flächen —, damit Ziffern in Spalten untereinander stehen. */
+  --font-ui: "Fira Sans Condensed", "Roboto Condensed", system-ui, sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "Roboto Mono", monospace;
+  --font-heading: var(--font-ui);
   --font-heading-weight: 600;
-  --font-body: "Lora", system-ui, sans-serif;
+  --font-body: var(--font-ui);
 
   --space-1: 4.6px;
   --space-2: 9.2px;
@@ -58,7 +63,7 @@ body {
   margin: 0;
   background: #e6e1d2;
   color: var(--color-text);
-  font-family: Lora, Georgia, serif;
+  font-family: var(--font-ui);
   font-size: 15px;
   line-height: 1.55;
   font-weight: 400;
@@ -68,18 +73,33 @@ a { color: #3c4a35; }
 a:hover { color: #26301f; }
 img { display: block; max-width: 100%; }
 * { -webkit-tap-highlight-color: transparent; }
-input, select, textarea, button { font-family: Lora, Georgia, serif; }
+input, select, textarea, button { font-family: var(--font-ui); }
 ::selection { background: #3c4a3526; }
 :focus { outline: none; }
 :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 
-.serif { font-family: 'Cormorant Garamond', Cormorant, Georgia, serif; }
+/* Überschriften. Der Klassenname stammt aus der Zeit mit Cormorant Garamond. */
+.serif { font-family: var(--font-ui); letter-spacing: 0; }
+
+/* Zahlen in IBM Plex Mono. `.num` für neuen Code; die bestehenden Stellen
+   tragen schon `font-variant-numeric: tabular-nums` inline und werden
+   darüber erkannt, damit dafür nicht jede Datei angefasst werden muss. */
+.num, [style*="tabular-nums"] { font-family: var(--font-num); letter-spacing: 0; }
 
 /* ── App palette ────────────────────────────────────────────────────────────
-   Loden and old gold on warm parchment. Map tones (--m-*) are a second set so
-   the Satellit style and the Rotlicht mode can restyle the map alone. */
+   Drei Lichtmodi, im Automatikbetrieb nach Sonnenstand (lib/lightMode.ts):
+   Tag, Dämmerung, Rotlicht — als data-licht am .app-Element. Die Farben
+   tragen die Namen der Revierpalette: Waldnacht, Loden, Moos, Messing,
+   Birkenrind, Signalorange — dieselben Werte wie im Büchsenlichtband. Map tones (--m-*) are a second set so the
+   Satellit style and each light mode can restyle the map alone. */
 .app {
-  --bg: #f2eee2; --ink: #26301f; --accent: #3c4a35; --gold: #a8863c; --loden: #3c4a35;
+  --waldnacht: #0f1a14; --loden-500: #2e3b2c; --moos: #5b6b3a;
+  --messing: #b08d57; --birkenrind: #e8e2d0; --signal: #e8622a;
+}
+
+/* Tag — Birkenrinde und Loden, voller Kontrast für Sonnenlicht. */
+.app, .app[data-licht="tag"] {
+  --bg: #f2eee2; --ink: #26301f; --accent: var(--loden-500); --gold: #8a6a35; --loden: var(--loden-500);
   --surf: #faf7ee; --line: #2f3a28;
   --rule: #d3ceba; --muted: #66705c; --chip: #e3e0cf;
   --m-grass: #e2e3c5; --m-forest: #7e8a4e; --m-field: #e7dcb4; --m-water: #b0c3c3;
@@ -91,13 +111,33 @@ input, select, textarea, button { font-family: Lora, Georgia, serif; }
   --m-road: #8a8069; --m-stroke: #6a6350; --m-label: #f1ebdd;
 }
 
-/* Rotlichtmodus — nur Rottöne, gedimmt: schont die Nachtsicht auf dem Ansitz. */
-.app[data-night="1"] {
+/* Dämmerung — Waldnacht statt Pergament: blendet nicht, wenn das Licht
+   schwindet, bleibt aber farbig lesbar (Moos, Messing, Signal). */
+.app[data-licht="daemmerung"] {
+  --bg: var(--waldnacht); --ink: var(--birkenrind); --accent: var(--moos); --gold: var(--messing); --loden: var(--loden-500);
+  --surf: #17231b; --line: #4a5a44;
+  --rule: #24302a; --muted: #9c9a88; --chip: #1e2a22;
+  --m-grass: #2a3121; --m-forest: #1b2215; --m-field: #3a3524; --m-water: #22323a;
+  --m-road: #6d6656; --m-stroke: #4d5640; --m-label: #e8e2d0;
+}
+
+.app[data-licht="daemmerung"][data-mapstyle="sat"] {
+  --m-grass: #232a1b; --m-forest: #121a0e; --m-field: #3b3622; --m-water: #121c22;
+  --m-road: #5f5848; --m-stroke: #4a4436; --m-label: #e8e2d0;
+}
+
+/* Rotlicht — nur Rottöne, gedimmt: schont die Nachtsicht auf dem Ansitz.
+   Die Töne allein reichen nicht (Kartenbild, Logo, weiße Schrift auf
+   Knöpfen), deshalb läuft zusätzlich die Farbmatrix #rotlicht-matrix aus
+   App.tsx über die ganze App: Grün und Blau sind danach physisch null. */
+.app[data-licht="rotlicht"] {
   --bg: #0b0908; --ink: #ff7355; --accent: #c2452a; --gold: #ff8a4a; --loden: #2a1a11;
   --surf: #161211; --line: #6b2817;
-  --rule: #3a1a11; --muted: #c2503a; --chip: #231512;
+  --rule: #3a1a11; --muted: #e0583e; --chip: #231512;
+  --signal: #ff8a4a;
   --m-grass: #1b0c08; --m-forest: #120705; --m-field: #25100a; --m-water: #0f0605;
   --m-road: #6b2817; --m-stroke: #4a1b10; --m-label: #ff7355;
+  filter: url(#rotlicht-matrix);
 }
 
 .scroll { overflow-y: auto; scrollbar-width: none; }

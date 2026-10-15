@@ -1,4 +1,4 @@
-// Lädt Cormorant Garamond und Lora einmalig von Google herunter und legt sie
+// Lädt Fira Sans Condensed (Bedienung) und IBM Plex Mono (Zahlen) einmalig von Google herunter und legt sie
 // als WOFF2 unter public/fonts/ ab, dazu ein lokales fonts.css. Danach braucht
 // die App zum Starten kein Netz mehr — im Revier gibt es keins.
 //
@@ -7,8 +7,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const CSS_URL = 'https://fonts.googleapis.com/css2'
-  + '?family=Cormorant+Garamond:wght@400;500;600'
-  + '&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap';
+  + '?family=Fira+Sans+Condensed:ital,wght@0,400;0,500;0,600;1,400'
+  + '&family=IBM+Plex+Mono:wght@400;600&display=swap';
 
 // Ein Browser-UA, sonst liefert Google die veralteten TTF-Varianten aus.
 const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36';

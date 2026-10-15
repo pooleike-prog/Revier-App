@@ -47,7 +47,7 @@ Ausprobieren des Vollbilds im Browser: `?app` an die Adresse hängen.
 src/
   App.tsx                 Präsentationsseite, Geräterahmen, Kopfzeile, Reiterwahl
   theme.css               Design-Tokens: Classical-System + .app-Palette
-                          (Satellit- und Rotlicht-Varianten als data-Attribute)
+                          (Satellit und die drei Lichtmodi als data-Attribute)
   state/store.tsx         ein Zustandsobjekt mit setState-artigem `set`,
                           dazu `flash` (Toast) und `addMarker`
   types.ts                Datenmodell
@@ -91,8 +91,8 @@ src/
   Tagebuch, Jagdplanung und Einstellungen überstehen das Schließen. Nichts
   verlässt das Gerät. *Mehr → Daten* stellt die Demo-Daten wieder her.
 - **Schriften im Paket** (`public/fonts/`) statt von Google — sonst stünde die
-  App im Revier ohne Empfang in Georgia.
-- **Offline startklar**: Service Worker legt die 45 Dateien der App auf dem
+  App im Revier ohne Empfang in der Systemschrift.
+- **Offline startklar**: Service Worker legt die 41 Dateien der App auf dem
   Gerät ab; als APK sind sie ohnehin mit installiert.
 
 **Demo-Stand:**

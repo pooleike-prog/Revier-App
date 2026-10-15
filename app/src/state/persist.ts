@@ -12,7 +12,7 @@ const VERSION = 1;
 const FIELDS = [
   'markers', 'fieldData', 'revierData', 'activeRevier', 'journal',
   'jagden', 'treiben', 'posts', 'arrows', 'extents',
-  'night', 'mapStyle', 'ctrl', 'zeichen', 'openGroups',
+  'licht', 'mapStyle', 'ctrl', 'zeichen', 'openGroups',
 ] as const;
 
 type Persisted = Pick<AppState, (typeof FIELDS)[number]>;
@@ -31,7 +31,13 @@ export function load(): Partial<AppState> | null {
     // Ein Stand aus einer älteren Fassung wird verworfen, nicht halb geladen.
     if (parsed.v !== VERSION || !parsed.data) return null;
     if (!Array.isArray(parsed.data.revierData) || !parsed.data.revierData.length) return null;
-    return parsed.data;
+    // Ältere Stände kannten nur den Rotlicht-Schalter `night`.
+    const old = parsed.data as Persisted & { night?: boolean };
+    if (!old.licht) {
+      old.licht = old.night ? 'rotlicht' : 'auto';
+      delete old.night;
+    }
+    return old;
   } catch {
     return null;
   }
