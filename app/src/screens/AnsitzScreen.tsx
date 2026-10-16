@@ -39,7 +39,7 @@ function DayRow({ day: d, expanded, onToggle }: { day: DayLight; expanded: boole
             ))}
             {d.moonGlow.map((b, i) => (
               <div key={`m${i}`} style={{
-                position: 'absolute', top: 0, bottom: 0,
+                position: 'absolute', top: '50%', bottom: 0,
                 left: b.left, width: b.width, background: b.background, opacity: b.opacity,
               }} />
             ))}

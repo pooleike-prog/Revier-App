@@ -82,7 +82,7 @@ export function clock(d: Date | null): string {
 }
 
 const NIGHT = '#23231c';
-const TWI = 'color-mix(in oklab, var(--gold) 55%, var(--surf))';
+const TWI = 'var(--bl)';
 const DAY = 'var(--m-grass)';
 
 export interface Band {
@@ -106,7 +106,7 @@ export interface DayLight {
   sunset: string;
   /** Nacht / Büchsenlicht / Tag across the 24-hour bar. */
   bands: Band[];
-  /** Mondlicht in der Dunkelheit, je Viertelstunde; Deckkraft = Helligkeit. */
+  /** Mondlicht in der Dunkelheit, je Viertelstunde, als halbhoher Streifen; Deckkraft = Helligkeit. */
   moonGlow: Band[];
   showNow: boolean;
   nowLeft: string;
@@ -132,7 +132,7 @@ export interface LightInfo {
   sub: string;
 }
 
-const MOON = 'var(--gold)';
+const MOON = 'var(--moon)';
 /** Mondlicht ab dieser Höhe über dem Horizont zählt; darunter schluckt es Wald und Dunst. */
 const MOON_MIN_ALT = 5 * RAD;
 
@@ -258,11 +258,11 @@ export function computeLight(mode: BuechsenlichtMode, dayCount = 5): LightInfo {
       { label: 'Nacht', background: NIGHT, height: 8 },
       { label: 'Büchsenlicht', background: TWI, height: 8 },
       { label: 'Tag', background: DAY, height: 8 },
-      { label: 'Mondlicht', background: MOON, height: 8 },
+      { label: 'Mondlicht', background: MOON, height: 4 },
     ],
     rule: mode === 'daemmerung'
-      ? 'Büchsenlicht = bürgerliche Dämmerung (Sonne 6° unter dem Horizont), für den Revierstandort gerechnet. Mondlicht: je heller das Gold, desto mehr Licht (Mondphase × Höhe über dem Horizont).'
-      : 'Büchsenlicht = Sonnenaufgang/-untergang ± ' + off + ' min (in Einstellungen umstellbar). Mondlicht: je heller das Gold, desto mehr Licht (Mondphase × Höhe über dem Horizont).',
+      ? 'Büchsenlicht = bürgerliche Dämmerung (Sonne 6° unter dem Horizont), für den Revierstandort gerechnet. Mondlicht: silberner Streifen in der unteren Hälfte, je kräftiger, desto mehr Licht (Mondphase × Höhe über dem Horizont).'
+      : 'Büchsenlicht = Sonnenaufgang/-untergang ± ' + off + ' min (in Einstellungen umstellbar). Mondlicht: silberner Streifen in der unteren Hälfte, je kräftiger, desto mehr Licht (Mondphase × Höhe über dem Horizont).',
     sub: 'Büchsenlicht ' + days[0].blStart + ' – ' + days[0].blEnd,
   };
 }
