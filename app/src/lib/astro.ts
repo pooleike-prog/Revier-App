@@ -92,33 +92,51 @@ export interface Band {
   opacity?: number;
 }
 
-export interface LightInfo {
-  blDate: string;
-  blPlace: string;
+/** Ein Tag im Fünf-Tage-Überblick: Lichtbänder über 24 h und die Zeiten dazu. */
+export interface DayLight {
+  /** „Heute“, „Morgen“ oder Wochentag. */
+  label: string;
+  /** 16.10. */
+  dateShort: string;
+  /** Fr., 16.10.2026 */
+  dateLong: string;
   blStart: string;
   blEnd: string;
   sunrise: string;
   sunset: string;
   /** Nacht / Büchsenlicht / Tag across the 24-hour bar. */
   bands: Band[];
-  /** Goldstreifen: Zeit, in der der Mond über dem Horizont steht. */
-  moonBands: Band[];
+  /** Mondlicht in der Dunkelheit, je Viertelstunde; Deckkraft = Helligkeit. */
+  moonGlow: Band[];
   showNow: boolean;
   nowLeft: string;
-  legend: Array<{ label: string; background: string; height: number }>;
   moonLit: string;
   moonPhase: string;
   moonRise: string;
   moonSet: string;
   moonHigh: string;
   moonAge: string;
+  /** Stunden mit nutzbarem Mondlicht in der Dunkelheit, z. B. „4,5 h“. */
+  moonHours: string;
+  /** dunkel / mittel / hell — Mondlicht über die Dunkelheit des Tages. */
+  moonRating: 'dunkel' | 'mittel' | 'hell';
   moonVerdict: string;
+}
+
+export interface LightInfo {
+  place: string;
+  days: DayLight[];
+  legend: Array<{ label: string; background: string; height: number }>;
   rule: string;
   /** Header subtitle on the Ansitz screen. */
   sub: string;
 }
 
-export function computeLight(dayOff: number, mode: BuechsenlichtMode): LightInfo {
+const MOON = 'var(--gold)';
+/** Mondlicht ab dieser Höhe über dem Horizont zählt; darunter schluckt es Wald und Dunst. */
+const MOON_MIN_ALT = 5 * RAD;
+
+function computeDay(dayOff: number, mode: BuechsenlichtMode): DayLight {
   const lat = REVIER_LAT, lng = REVIER_LNG;
   const base = new Date(Date.now() + dayOff * DAYMS);
 
@@ -139,22 +157,8 @@ export function computeLight(dayOff: number, mode: BuechsenlichtMode): LightInfo
 
   const blSh = berlinHour(blS), blEh = berlinHour(blE);
 
-  // Mond in Viertelstundenschritten durch den Tag verfolgen: Auf- und Untergang,
-  // Höchststand, und wieviel Mondlicht in die Dunkelheit fällt.
-  let mRise: Date | null = null, mSet: Date | null = null, maxAlt = -90, upDark = 0;
-  let prev = moonAlt(mid, lat, lng);
-  for (let i = 1; i <= 96; i++) {
-    const t = new Date(mid.getTime() + i * 900000);
-    const a = moonAlt(t, lat, lng);
-    const deg = a / RAD;
-    if (deg > maxAlt) maxAlt = deg;
-    if (prev < 0 && a >= 0 && !mRise) mRise = t;
-    if (prev >= 0 && a < 0 && !mSet) mSet = t;
-    if (a > 5 * RAD) { const h = berlinHour(t); if (h < blSh || h > blEh) upDark += 0.25; }
-    prev = a;
-  }
-
-  const dS = toDays(base), sc = sunCoords(dS), mc = moonCoords(dS);
+  // Beleuchteter Anteil der Mondscheibe, zur Tagesmitte gerechnet.
+  const dS = toDays(new Date(mid.getTime() + DAYMS / 2)), sc = sunCoords(dS), mc = moonCoords(dS);
   const phi = Math.acos(clamp1(Math.sin(sc.dec) * Math.sin(mc.dec) + Math.cos(sc.dec) * Math.cos(mc.dec) * Math.cos(sc.ra - mc.ra)));
   const inc = Math.atan2(SDIST * Math.sin(phi), mc.dist - SDIST * Math.cos(phi));
   const ang = Math.atan2(
@@ -169,6 +173,38 @@ export function computeLight(dayOff: number, mode: BuechsenlichtMode): LightInfo
     : (waxing ? 'zunehmend' : 'abnehmend');
   const litPct = Math.round(frac * 100);
 
+  // Mond in Viertelstundenschritten durch den Tag verfolgen: Auf- und Untergang,
+  // Höchststand, und wie hell er in der Dunkelheit leuchtet. Helligkeit je
+  // Schritt = beleuchteter Anteil × Sinus der Höhe (flacher Mond leuchtet
+  // schwächer); 1 entspricht etwa Vollmond auf 40° Höhe.
+  let mRise: Date | null = null, mSet: Date | null = null, maxAlt = -90, upDark = 0, lightSum = 0;
+  const moonGlow: Band[] = [];
+  let prev = moonAlt(mid, lat, lng);
+  for (let i = 1; i <= 96; i++) {
+    const t = new Date(mid.getTime() + i * 900000);
+    const a = moonAlt(t, lat, lng);
+    const deg = a / RAD;
+    if (deg > maxAlt) maxAlt = deg;
+    if (prev < 0 && a >= 0 && !mRise) mRise = t;
+    if (prev >= 0 && a < 0 && !mSet) mSet = t;
+    const h = berlinHour(t) || 24;
+    const dark = h - 0.25 < blSh || h - 0.25 >= blEh;
+    if (dark && a > MOON_MIN_ALT) {
+      const intensity = Math.min(1, frac * Math.sin(a) / 0.64);
+      upDark += 0.25;
+      lightSum += intensity * 0.25;
+      if (intensity > 0.03) {
+        moonGlow.push({
+          left: ((h - 0.25) / 24 * 100) + '%',
+          width: (0.25 / 24 * 100) + '%',
+          background: MOON,
+          opacity: 0.15 + 0.75 * intensity,
+        });
+      }
+    }
+    prev = a;
+  }
+
   const band = (x1: number, x2: number, background: string): Band => ({
     left: (x1 / 24 * 100) + '%',
     width: ((x2 - x1) / 24 * 100) + '%',
@@ -180,51 +216,53 @@ export function computeLight(dayOff: number, mode: BuechsenlichtMode): LightInfo
     band(ssh, blEh, TWI), band(blEh, 24, NIGHT),
   ];
 
-  const mrh = mRise ? berlinHour(mRise) : null;
-  const msh = mSet ? berlinHour(mSet) : null;
-  const mBand = (a: number, b: number): Band => ({
-    left: (a / 24 * 100) + '%',
-    width: ((b - a) / 24 * 100) + '%',
-    background: 'var(--gold)',
-    opacity: 0.35 + 0.65 * frac,
-  });
-  let moonBands: Band[] = [];
-  if (mrh !== null && msh !== null) moonBands = mrh < msh ? [mBand(mrh, msh)] : [mBand(0, msh), mBand(mrh, 24)];
-  else if (mrh !== null) moonBands = [mBand(mrh, 24)];
-  else if (msh !== null) moonBands = [mBand(0, msh)];
-  else if (maxAlt > 0) moonBands = [mBand(0, 24)];
+  const rating: DayLight['moonRating'] = lightSum < 0.75 || frac < 0.15 ? 'dunkel' : lightSum < 3 ? 'mittel' : 'hell';
+  const hours = (Math.round(upDark * 2) / 2).toLocaleString('de-DE') + ' h';
+  const verdict = rating === 'dunkel'
+    ? 'Dunkle Nacht: nach ' + clock(blE) + ' kaum Mondlicht. Wild bewegt sich früher, Ansitz zeitig besetzen.'
+    : rating === 'hell'
+    ? 'Helle Nacht: Mond zu ' + litPct + ' %, ' + hours + ' in der Dunkelheit über dem Horizont. Gutes Licht an der Kirrung, Wild aber wachsam und offene Flächen werden gemieden.'
+    : 'Mond zu ' + litPct + ' % (' + phaseName + '), ' + hours + ' in der Dunkelheit über dem Horizont, brauchbares Restlicht an offenen Schlägen.';
 
   const nowH = berlinHour(new Date());
-  const verdict = upDark < 1.5 || frac < 0.15
-    ? 'Dunkle Nacht — nach ' + clock(blE) + ' trägt nur noch Kunstlicht. Wild bewegt sich früher, Ansitz zeitig besetzen.'
-    : frac > 0.65 && upDark > 4
-    ? 'Helle Nacht: Mond zu ' + litPct + ' %, ' + Math.round(upDark) + ' h über dem Horizont. Gutes Licht auf Schwarzwild an der Kirrung, Wild aber wachsam und offene Flächen werden gemieden.'
-    : 'Mond zu ' + litPct + ' % (' + phaseName + '), ' + Math.round(upDark) + ' h in der Dunkelheit über dem Horizont — brauchbares Restlicht an offenen Schlägen.';
-
+  const tz = { timeZone: 'Europe/Berlin' } as const;
   return {
-    blDate: base.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Berlin' }),
-    blPlace: 'Revier Eichenkamp · 52,62° N 9,21° O',
+    label: dayOff === 0 ? 'Heute' : dayOff === 1 ? 'Morgen' : base.toLocaleDateString('de-DE', { weekday: 'short', ...tz }),
+    dateShort: base.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', ...tz }),
+    dateLong: base.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric', ...tz }),
     blStart: clock(blS), blEnd: clock(blE),
     sunrise: clock(sunRise), sunset: clock(sunSet),
-    bands, moonBands,
+    bands, moonGlow,
     showNow: dayOff === 0,
     nowLeft: (nowH / 24 * 100) + '%',
-    legend: [
-      { label: 'Nacht', background: NIGHT, height: 8 },
-      { label: 'Büchsenlicht', background: TWI, height: 8 },
-      { label: 'Tag', background: DAY, height: 8 },
-      { label: 'Mond über Horizont', background: 'var(--gold)', height: 5 },
-    ],
     moonLit: litPct + ' %',
     moonPhase: phaseName,
     moonRise: clock(mRise),
     moonSet: clock(mSet),
     moonHigh: maxAlt > 0 ? 'max ' + Math.round(maxAlt) + '° hoch' : 'bleibt unter Horizont',
     moonAge: Math.round(ph * 29.53) + '. Mondtag',
+    moonHours: hours,
+    moonRating: rating,
     moonVerdict: verdict,
+  };
+}
+
+/** Licht für heute und die folgenden Tage, am Revierstandort gerechnet. */
+export function computeLight(mode: BuechsenlichtMode, dayCount = 5): LightInfo {
+  const days = Array.from({ length: dayCount }, (_, i) => computeDay(i, mode));
+  const off = mode === 'sa60' ? 60 : mode === 'sa30' ? 30 : 0;
+  return {
+    place: 'Revier Eichenkamp · 52,62° N 9,21° O',
+    days,
+    legend: [
+      { label: 'Nacht', background: NIGHT, height: 8 },
+      { label: 'Büchsenlicht', background: TWI, height: 8 },
+      { label: 'Tag', background: DAY, height: 8 },
+      { label: 'Mondlicht', background: MOON, height: 8 },
+    ],
     rule: mode === 'daemmerung'
-      ? 'Büchsenlicht = bürgerliche Dämmerung (Sonne 6° unter dem Horizont), für den Revierstandort gerechnet.'
-      : 'Büchsenlicht = Sonnenaufgang/-untergang ± ' + off + ' min (in Einstellungen umstellbar).',
-    sub: 'Büchsenlicht ' + clock(blS) + ' – ' + clock(blE),
+      ? 'Büchsenlicht = bürgerliche Dämmerung (Sonne 6° unter dem Horizont), für den Revierstandort gerechnet. Mondlicht: je heller das Gold, desto mehr Licht (Mondphase × Höhe über dem Horizont).'
+      : 'Büchsenlicht = Sonnenaufgang/-untergang ± ' + off + ' min (in Einstellungen umstellbar). Mondlicht: je heller das Gold, desto mehr Licht (Mondphase × Höhe über dem Horizont).',
+    sub: 'Büchsenlicht ' + days[0].blStart + ' – ' + days[0].blEnd,
   };
 }
