@@ -14,7 +14,13 @@ const notes = [];
 // Vorinstalliertes Chromium nutzen, wenn eines bereitliegt.
 const preinstalled = '/opt/pw-browsers/chromium';
 const browser = await chromium.launch(existsSync(preinstalled) ? { executablePath: preinstalled } : {});
-const page = await browser.newPage({ viewport: { width: 1100, height: 1400 } });
+// GPS liegt im Demo-Revier, damit die Entfernungskreise etwas zu zeigen haben.
+const ctx = await browser.newContext({
+  viewport: { width: 1100, height: 1400 },
+  geolocation: { latitude: 52.34608, longitude: 9.777, accuracy: 8 },
+  permissions: ['geolocation'],
+});
+const page = await ctx.newPage();
 
 page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 page.on('pageerror', e => errors.push('pageerror: ' + e.message));
@@ -50,6 +56,37 @@ await check('Marker-Pins liegen auf der Karte', async () => {
 await check('Fruchtart-Labels sichtbar', async () => {
   const n = await page.getByText('Winterweizen', { exact: true }).count();
   if (n < 1) throw new Error('kein Fruchtart-Label');
+});
+
+await check('Entfernungskreise um die GPS-Position', async () => {
+  await page.getByRole('button', { name: 'Auf eigenen Standort' }).click();
+  for (const d of [50, 100, 150, 200]) await page.getByText(`${d} m`, { exact: true }).first().waitFor({ timeout: 4000 });
+  await navBtn('Einstellungen').click();
+  await page.getByLabel('Neue Entfernung in Metern').fill('300');
+  await page.getByRole('button', { name: 'Hinzufügen' }).click();
+  await page.getByRole('button', { name: '50 m entfernen', exact: true }).click();
+  await navBtn('Karte').click();
+  await page.getByRole('button', { name: 'Auf eigenen Standort' }).click();
+  await page.getByText('300 m', { exact: true }).first().waitFor({ timeout: 2000 });
+  if (await page.getByText('50 m', { exact: true }).count()) throw new Error('50-m-Kreis noch da');
+  await navBtn('Einstellungen').click();
+  await page.getByRole('switch', { name: /Entfernungskreise/ }).click();
+  await navBtn('Karte').click();
+  if (await page.getByText('300 m', { exact: true }).count()) throw new Error('Kreise trotz AUS sichtbar');
+  await navBtn('Einstellungen').click();
+  await page.getByRole('switch', { name: /Entfernungskreise/ }).click();
+  await page.getByRole('button', { name: /^Standard:/ }).click();
+  await navBtn('Karte').click();
+  if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT, clip: await app.boundingBox() });
+  await page.getByRole('button', { name: 'Verkleinern' }).click();
+});
+
+await check('Ansitz zeigt keine Kanzel-Empfehlungen mehr', async () => {
+  await navBtn('Ansitz').click();
+  for (const t of ['Gut', 'Mäßig', 'Schlecht']) {
+    if (await page.getByText(t, { exact: true }).count()) throw new Error('Bewertung „' + t + '“ noch da');
+  }
+  await navBtn('Karte').click();
 });
 
 await check('Kartenstil auf Satellit umschaltbar', async () => {
@@ -154,13 +191,13 @@ await check('Ansitz: Tagesnavigation rechnet neu', async () => {
   await page.getByRole('button', { name: 'Vorheriger Tag' }).click();
 });
 
-await check('Mehr: Kartenzeichen auf Buchstaben umschaltbar', async () => {
-  await navBtn('Mehr').click();
+await check('Einstellungen: Kartenzeichen auf Buchstaben umschaltbar', async () => {
+  await navBtn('Einstellungen').click();
   await page.getByText('Buchstaben', { exact: true }).click();
   await navBtn('Karte').click();
   const codes = await page.locator('.app span').filter({ hasText: /^[AFWKTSE]$/ }).count();
   if (codes < 5) throw new Error('nur ' + codes + ' Kürzel');
-  await navBtn('Mehr').click();
+  await navBtn('Einstellungen').click();
   await page.getByText('Symbole', { exact: true }).click();
 });
 
@@ -176,7 +213,7 @@ await check('Zielkreuz-Variante zeigt den FAB', async () => {
 
 await check('Erfasstes überlebt einen Neustart', async () => {
   // Der vorige Test hat auf Zielkreuz gestellt — für die Werkzeugleiste zurück.
-  await navBtn('Mehr').click();
+  await navBtn('Einstellungen').click();
   await page.getByText('Variante A · Werkzeugleiste').click();
   await navBtn('Karte').click();
   await page.locator('button:has-text("Kirrung")').last().click();
@@ -197,7 +234,7 @@ await check('Erfasstes überlebt einen Neustart', async () => {
 });
 
 await check('Zurücksetzen stellt die Demo-Daten wieder her', async () => {
-  await navBtn('Mehr').click();
+  await navBtn('Einstellungen').click();
   await page.getByText('Demo-Daten wiederherstellen').click();
   await page.getByText('Ja, zurücksetzen').click();
   await navBtn('Karte').click();

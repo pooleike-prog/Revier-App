@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useApp, typeDef } from '../state/store';
 import { ICON } from '../data/constants';
-import { DOWNLOADS } from '../data/seed';
-import { WERBEFREI } from '../data/settings';
+import { KREIS_STANDARD, WERBEFREI } from '../data/settings';
 import type { CtrlMode, MarkerType, SignMode } from '../types';
 import { block, chip } from '../lib/styles';
 import { Icon } from '../components/Icon';
@@ -38,13 +37,122 @@ const SIGN_OPTIONS: Array<{ id: SignMode; title: string; desc: string }> = [
 
 const SAMPLES: MarkerType[] = ['ansitz', 'kirrung', 'erleg'];
 
+/** Sinnvolle Grenzen für Entfernungskreise: Schrotschuss bis weite Kugel. */
+const KREIS_MIN = 5, KREIS_MAX = 3000, KREIS_ANZAHL = 8;
+
+const title = { fontSize: 15, fontWeight: 600, marginBottom: 3 };
+const desc = { fontSize: 12, lineHeight: 1.4, color: 'var(--muted)' };
+
+/** Abschnittskopf. Mit `open`/`onToggle` klappt der Abschnitt auf und zu. */
+function Section({ label, open, onToggle }: { label: string; open?: boolean; onToggle?: () => void }) {
+  if (!onToggle) return <div style={sectionLabel}>{label}</div>;
+  return (
+    <button onClick={onToggle} aria-expanded={open} style={{
+      ...sectionLabel, display: 'flex', width: '100%', minHeight: 48, alignItems: 'center',
+      border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left',
+    }}>
+      <span style={{ flex: 1 }}>{label}</span>
+      <span style={{ fontSize: 16, letterSpacing: 0 }}>{open ? '−' : '+'}</span>
+    </button>
+  );
+}
+
+/** Ein großer Schalter über die ganze Breite — mit Handschuhen gut zu treffen. */
+function Schalter({ an, text, hinweis, onClick }: { an: boolean; text: string; hinweis: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} role="switch" aria-checked={an} style={{ ...block(an), display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={title}>{text}</div>
+        <div style={desc}>{hinweis}</div>
+      </div>
+      <span style={{
+        flex: 'none', minWidth: 52, padding: '6px 0', textAlign: 'center', fontSize: 12, fontWeight: 600,
+        letterSpacing: '.08em', border: '2px solid ' + (an ? 'var(--accent)' : 'var(--line)'),
+        background: an ? 'var(--accent)' : 'transparent', color: an ? '#fff' : 'var(--ink)',
+      }}>{an ? 'AN' : 'AUS'}</span>
+    </button>
+  );
+}
+
+function Kreise() {
+  const { state: s, set } = useApp();
+  const [neu, setNeu] = useState('');
+  // Der Hinweis steht direkt am Feld — Toasts zeigt nur die Karte.
+  const [fehler, setFehler] = useState('');
+
+  const hinzu = () => {
+    const d = Math.round(Number(neu.replace(',', '.')));
+    if (!Number.isFinite(d) || d < KREIS_MIN || d > KREIS_MAX) {
+      setFehler(`Entfernung zwischen ${KREIS_MIN} und ${KREIS_MAX} m eingeben.`); return;
+    }
+    if (s.kreisDists.includes(d)) { setFehler(`${d} m ist schon dabei.`); return; }
+    if (s.kreisDists.length >= KREIS_ANZAHL) { setFehler(`Höchstens ${KREIS_ANZAHL} Kreise.`); return; }
+    set(p => ({ kreisDists: [...p.kreisDists, d].sort((a, b) => a - b), kreise: true }));
+    setNeu('');
+    setFehler('');
+  };
+
+  const standard = s.kreisDists.join() === KREIS_STANDARD.join();
+
+  return (
+    <>
+      <Schalter
+        an={s.kreise}
+        text="Entfernungskreise"
+        hinweis="Ringe um die eigene GPS-Position auf der Karte. Im dichten Bestand kann GPS 10–20 m danebenliegen."
+        onClick={() => set(p => ({ kreise: !p.kreise }))}
+      />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, opacity: s.kreise ? 1 : 0.5 }}>
+        {s.kreisDists.map(d => (
+          <button
+            key={d}
+            onClick={() => set(p => ({ kreisDists: p.kreisDists.filter(x => x !== d) }))}
+            aria-label={`${d} m entfernen`}
+            style={chip(false, { fontVariantNumeric: 'tabular-nums' })}
+          >{d} m <span style={{ marginLeft: 6, color: 'var(--muted)' }}>×</span></button>
+        ))}
+        {!s.kreisDists.length && <div style={desc}>Keine Entfernungen — unten eine hinzufügen.</div>}
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          value={neu}
+          onChange={e => { setNeu(e.target.value); setFehler(''); }}
+          onKeyDown={e => { if (e.key === 'Enter') hinzu(); }}
+          inputMode="numeric"
+          placeholder="Meter, z. B. 75"
+          aria-label="Neue Entfernung in Metern"
+          style={{
+            flex: 1, minWidth: 0, minHeight: 48, padding: '0 12px', fontSize: 15, boxSizing: 'border-box',
+            border: '2px solid var(--line)', background: 'transparent', color: 'var(--ink)', fontFamily: 'inherit',
+          }}
+        />
+        <button onClick={hinzu} style={chip(true, { minHeight: 48, flex: 'none' })}>Hinzufügen</button>
+      </div>
+      {fehler && <div role="alert" style={{ ...desc, color: 'var(--accent)', fontWeight: 600 }}>{fehler}</div>}
+      {!standard && (
+        <button
+          onClick={() => set({ kreisDists: [...KREIS_STANDARD] })}
+          style={chip(false, { alignSelf: 'flex-start', fontSize: 13 })}
+        >Standard: {KREIS_STANDARD.join(' / ')} m</button>
+      )}
+    </>
+  );
+}
+
 export function MehrScreen() {
-  const { state: s, set, flash, resetData } = useApp();
+  const { state: s, set, resetData } = useApp();
   const [confirmReset, setConfirmReset] = useState(false);
+  const [rechtOffen, setRechtOffen] = useState(false);
 
   return (
     <div className="scroll" style={{ flex: 1 }}>
-      <div style={sectionLabel}>Kartenbedienung</div>
+      <Section label="Standort & Entfernungskreise" />
+      <div style={sectionBody}>
+        <Kreise />
+      </div>
+
+      <div style={divider} />
+      <Section label="Karte · Bedienung" />
       <div style={sectionBody}>
         {CTRL_OPTIONS.map(o => (
           <button
@@ -59,7 +167,7 @@ export function MehrScreen() {
       </div>
 
       <div style={divider} />
-      <div style={sectionLabel}>Kartenzeichen</div>
+      <Section label="Karte · Zeichen" />
       <div style={sectionBody}>
         {SIGN_OPTIONS.map(o => (
           <button key={o.id} onClick={() => set({ zeichen: o.id })} style={block(s.zeichen === o.id)}>
@@ -87,8 +195,22 @@ export function MehrScreen() {
         ))}
       </div>
 
+
       <div style={divider} />
-      <div style={sectionLabel}>Darstellung</div>
+      <Section label="Reviere" />
+      <div style={sectionBody}>
+        <button onClick={() => set({ sheet: 'reviere' })} style={block(false)}>
+          <div style={title}>Reviere verwalten</div>
+          <div style={desc}>Aktives Revier wählen, ein- und ausblenden, neues Revier zeichnen.</div>
+        </button>
+        <button onClick={() => set({ sheet: 'standort' })} style={block(false)}>
+          <div style={title}>Revierlage auf der Karte</div>
+          <div style={desc}>{s.anker.ort} · Ort suchen oder per GPS setzen.</div>
+        </button>
+      </div>
+
+      <div style={divider} />
+      <Section label="Darstellung" />
       <div style={sectionBody}>
         <button onClick={() => set({ night: false })} style={block(!s.night)}>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>Tagmodus</div>
@@ -103,11 +225,15 @@ export function MehrScreen() {
       </div>
 
       <div style={divider} />
-      <div style={sectionLabel}>Daten</div>
+      <Section label="Daten & Offline" />
       <div style={sectionBody}>
         <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--muted)' }}>
           Reviere, Marker, Flächen und Tagebuch liegen verschlüsselbar auf dem Gerät und überstehen
           das Schließen der App. Nichts davon verlässt das Telefon.
+        </div>
+        <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--muted)' }}>
+          Offline-Karten: Angesehene Kacheln bleiben automatisch gespeichert. Der Knopf OFF auf der Karte
+          lädt das aktive Revier samt 300 m Rand im gerade gewählten Kartenstil vorab.
         </div>
         <button onClick={() => setConfirmReset(true)} style={block(false)}>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>Demo-Daten wiederherstellen</div>
@@ -140,41 +266,23 @@ export function MehrScreen() {
         )}
       </div>
 
-      <div style={divider} />
-      <div style={sectionLabel}>Offline-Karten</div>
-      {DOWNLOADS.map(([name, meta, action, available]) => (
-        <div key={name} style={{
-          display: 'flex', alignItems: 'center', gap: 12,
-          padding: '13px 14px', borderBottom: '1px solid var(--rule)',
-        }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 600 }}>{name}</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{meta}</div>
-          </div>
-          <button
-            onClick={() => flash(available ? name + ' — Download in Warteschlange' : name + ' ist aktuell')}
-            style={chip(false, {
-              minHeight: 44, fontSize: 11, fontWeight: 600, letterSpacing: '.08em',
-              flex: 'none', opacity: available ? 1 : 0.45,
-            })}
-          >{action}</button>
-        </div>
-      ))}
 
       <div style={divider} />
-      <div style={sectionLabel}>Datenquellen &amp; Recht</div>
-      <div style={{ padding: '0 14px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <Section label="Datenquellen & Recht" open={rechtOffen} onToggle={() => setRechtOffen(o => !o)} />
+      {rechtOffen && <div style={{ padding: '0 14px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={{ border: '2px solid var(--rule)', padding: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Topografie</div>
           <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--muted)' }}>
-            OpenStreetMap-Vektorkacheln (ODbL), eigener Stil mit Höhenlinien aus DGM1. Offline als PMTiles.
+            basemap.de Relief des BKG (CC BY 4.0): amtliche Vektorkacheln mit Höhenlinien für ganz Deutschland.
+            Ausweiche OpenTopoMap (CC BY-SA). Angesehene Kacheln bleiben offline auf dem Gerät.
           </div>
         </div>
         <div style={{ border: '2px solid var(--rule)', padding: 12 }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 4 }}>Satellit / Orthofoto</div>
           <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--muted)' }}>
-            DOP20 des LGLN Niedersachsen als Open Data (Datenlizenz Deutschland 2.0, kommerziell nutzbar,
-            Namensnennung). Andere Länder je Landesamt nachziehen; Sentinel-2 als flächige Rückfallebene.
+            DOP20 der Landesvermessung als Open Data: Niedersachsen (CC BY 4.0), Nordrhein-Westfalen
+            (dl-de/zero-2-0), Brandenburg/Berlin (dl-de/by-2-0), Bayern (CC BY 4.0). Weitere Länder folgen,
+            sobald ihr Luftbild frei nutzbar ist. Ortssuche über Photon (Daten © OpenStreetMap-Mitwirkende).
           </div>
         </div>
         <div style={{ border: '1px solid var(--line)', padding: 12 }}>
@@ -198,7 +306,7 @@ export function MehrScreen() {
             geschrieben. Freigabe an Jagdgäste erst in Ausbaustufe 2.
           </div>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

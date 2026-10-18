@@ -4,6 +4,7 @@ import { fmt, ha } from '../lib/geo';
 import { activeRevier, kindLabel } from '../lib/selectors';
 import { block, chip, inputStyle, label } from '../lib/styles';
 import { sheetBody } from '../components/Sheet';
+import { zumRevier } from './StandortSheet';
 
 const KINDS: Array<[RevierKind, string]> = [
   ['eigen', 'Eigenjagd'],
@@ -21,7 +22,7 @@ export function ReviereSheet() {
         const on = r.id === act.id;
         return (
           <div key={r.id} style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-            <button onClick={() => set({ activeRevier: r.id, sheet: null })} style={block(on)}>
+            <button onClick={() => set(p => ({ activeRevier: r.id, sheet: null, ...zumRevier(p, r.id) }))} style={block(on)}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
                   width: 20, height: 20, flex: 'none',
@@ -92,6 +93,14 @@ export function ReviereSheet() {
           >Revier mit allen Markern löschen</button>
         )}
       </div>
+
+      <button
+        onClick={() => set({ sheet: 'standort' })}
+        style={{
+          minHeight: 52, border: '2px solid var(--line)', background: 'transparent',
+          color: 'var(--ink)', fontSize: 15, textAlign: 'left', padding: '0 14px', cursor: 'pointer',
+        }}
+      >Revier auf echte Karte setzen · Ort suchen</button>
 
       <button
         onClick={() => set({ drawing: [], sheet: null, tool: null, radial: false, aim: null, screen: 'karte' })}
