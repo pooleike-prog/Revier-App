@@ -15,3 +15,6 @@ export const BUECHSENLICHT: BuechsenlichtMode = 'daemmerung';
  *  Das Demo-Revier sitzt bei Hannover, im Abdeckungsgebiet des LGLN-Luftbilds.
  *  Für ein echtes Revier gehört hier dessen Mitte hin. */
 export const KARTEN_ANKER = { lat: 52.34608, lng: 9.777 };
+
+/** Entfernungskreise um die eigene Position, wie Eike sie im Revier braucht. */
+export const KREIS_STANDARD: readonly number[] = [50, 100, 150, 200];

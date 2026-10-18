@@ -151,6 +151,10 @@ export interface AppState {
   anker: KartenAnker;
   /** Bundesland, dessen Luftbild die Satellitenansicht zeigt. */
   luftbild: LuftbildLand;
+  /** Entfernungskreise um die eigene GPS-Position zeigen. */
+  kreise: boolean;
+  /** Radien der Entfernungskreise in Metern, aufsteigend. */
+  kreisDists: number[];
 
   sheet: SheetKind | null;
   sel: number | null;

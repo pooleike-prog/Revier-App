@@ -11,6 +11,8 @@ import { MAP_H, MAP_W, mapWrapStyle, toMap, usePan, usePinch } from '../lib/mapI
 import { RealMap } from '../components/RealMap';
 import { kachelAdressen } from '../lib/kartenquellen';
 import { vorladen } from '../lib/kachelspeicher';
+import { lngLatToPx } from '../lib/projection';
+import { useStandort } from '../state/useStandort';
 import { Icon } from '../components/Icon';
 import { Toast } from '../components/Toast';
 import { DrawPanel } from './karte/DrawPanel';
@@ -45,6 +47,8 @@ export function KarteScreen() {
   const laden = useRef<AbortController | null>(null);
   const [offline, setOffline] = useState('');
   const inv = 1 / s.zoom;
+  const standort = useStandort(flash);
+  const ich = standort ? lngLatToPx(standort.lng, standort.lat) : null;
 
   const act = activeRevier(s);
   const visIds = visibleRevierIds(s);
@@ -54,7 +58,7 @@ export function KarteScreen() {
 
   // Messen: Bezugspunkt ist der gesetzte Punkt, sonst der gewählte Ansitz,
   // sonst der eigene Standort.
-  const mFrom = s.measFrom ?? (cur ? { x: cur.x, y: cur.y } : { x: 200, y: 260 });
+  const mFrom = s.measFrom ?? (cur ? { x: cur.x, y: cur.y } : ich ?? { x: 200, y: 260 });
   const mFromName = s.measFrom ? 'gesetztem Punkt' : (cur ? cur.name : 'eigenem Standort');
   const mTo = s.measTo;
   const measM = mTo ? Math.round(Math.hypot(mTo.x - mFrom.x, mTo.y - mFrom.y) * M_PER_PX / 5) * 5 : 0;
@@ -138,6 +142,21 @@ export function KarteScreen() {
         ? `${act.name}: ${r.fertig} Kacheln gespeichert, ${r.fehler} nicht erreichbar.`
         : `${act.name}: ${stil} offline gespeichert (${r.fertig} Kacheln).`);
   };
+
+  /** Holt die eigene Position in die Fenstermitte. Mit Entfernungskreisen
+   *  zoomt die Karte so weit, dass der größte Kreis gut ins Bild passt. */
+  const zuMir = () => {
+    if (!ich) { flash('Noch kein GPS-Empfang.'); return; }
+    set(p => {
+      const groesster = p.kreise && p.kreisDists.length ? Math.max(...p.kreisDists) : 0;
+      const zoom = groesster ? Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, 150 * M_PER_PX / groesster)) : p.zoom;
+      return { zoom, pan: { x: 206 - 200 * (1 - zoom) - ich.x * zoom, y: 260 - 260 * (1 - zoom) - ich.y * zoom } };
+    });
+  };
+
+  // Entfernungskreise: Beschriftung nur, wo der Abstand zum inneren Kreis
+  // auf dem Bildschirm dafür reicht — sonst stapeln sich die Schilder.
+  const kreise = s.kreise ? [...s.kreisDists].sort((a, b) => a - b) : [];
 
   const placeAtCenter = () => {
     if (!s.aim) return;
@@ -301,6 +320,42 @@ export function KarteScreen() {
             </>
           )}
 
+          {/* Eigene Position mit Entfernungskreisen, maßstabsgerecht. */}
+          {ich && standort && (
+            <>
+              <div style={{
+                position: 'absolute', left: ich.x - standort.genau / M_PER_PX, top: ich.y - standort.genau / M_PER_PX,
+                width: 2 * standort.genau / M_PER_PX, height: 2 * standort.genau / M_PER_PX, borderRadius: '50%',
+                background: 'color-mix(in oklab, var(--accent) 12%, transparent)', pointerEvents: 'none', zIndex: 2,
+              }} />
+              {kreise.map(d => {
+                const r = d / M_PER_PX;
+                return (
+                  <div key={`k${d}`} style={{
+                    position: 'absolute', left: ich.x - r, top: ich.y - r, width: r * 2, height: r * 2,
+                    borderRadius: '50%', border: 2 * inv + 'px solid var(--accent)', boxSizing: 'border-box',
+                    opacity: 0.85, pointerEvents: 'none', zIndex: 2,
+                  }} />
+                );
+              })}
+              {kreise.map((d, i) => (d - (kreise[i - 1] ?? 0)) / M_PER_PX * s.zoom < 16 ? null : (
+                <div key={`kl${d}`} style={{
+                  position: 'absolute', left: ich.x, top: ich.y - d / M_PER_PX,
+                  transform: `translate(-50%,-50%) scale(${inv})`,
+                  fontSize: 10, fontWeight: 600, lineHeight: '14px', letterSpacing: '.03em',
+                  color: 'var(--surf)', background: 'var(--accent)', padding: '0 4px',
+                  pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 4, fontVariantNumeric: 'tabular-nums',
+                }}>{d} m</div>
+              ))}
+              <div style={{
+                position: 'absolute', left: ich.x - 8, top: ich.y - 8, width: 16, height: 16,
+                transform: `scale(${inv})`, borderRadius: '50%', boxSizing: 'border-box',
+                background: 'var(--accent)', border: '3px solid var(--surf)',
+                boxShadow: '0 0 0 2px var(--accent)', pointerEvents: 'none', zIndex: 4,
+              }} />
+            </>
+          )}
+
           {/* Der Punkt skaliert gegen den Zoom — er bleibt klein, die Ringe wachsen. */}
           {s.markers.filter(m => inView(m) && ringed(m)).map(m => {
             const on = s.sel === m.id;
@@ -357,6 +412,7 @@ export function KarteScreen() {
         <button onClick={() => set({ sheet: 'legend' })} style={{ ...ctrlBox, fontSize: 11, fontWeight: 600, letterSpacing: '.04em' }}>i</button>
         <button onClick={() => set(p => zoomUm(p.pan, p.zoom, Math.min(ZOOM_MAX, p.zoom * ZOOM_STUFE)))} aria-label="Vergrößern" style={{ ...ctrlBox, fontSize: 22, fontWeight: 500, lineHeight: 1 }}>+</button>
         <button onClick={() => set(p => zoomUm(p.pan, p.zoom, Math.max(ZOOM_MIN, p.zoom / ZOOM_STUFE)))} aria-label="Verkleinern" style={{ ...ctrlBox, fontSize: 22, fontWeight: 500, lineHeight: 1 }}>−</button>
+        <button onClick={zuMir} aria-label="Auf eigenen Standort" style={{ ...ctrlBox, fontSize: 20, lineHeight: 1, ...(ich ? null : { opacity: 0.5 }) }}>◎</button>
         <button
           onClick={revierOffline}
           aria-label={offline ? 'Offline-Speichern abbrechen' : 'Revier offline speichern'}

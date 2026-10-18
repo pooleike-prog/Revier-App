@@ -1,5 +1,5 @@
 import type { AppState } from '../types';
-import { KARTEN_ANKER } from './settings';
+import { KARTEN_ANKER, KREIS_STANDARD } from './settings';
 
 /* Demo-Revier für den Prototyp. Alle Koordinaten liegen im 400 × 520 großen
    Kartenraster bei 12 m/px. */
@@ -15,6 +15,8 @@ export const initialState: AppState = {
   pan: { x: 6, y: 40 }, zoom: 1,
   anker: { ...KARTEN_ANKER, ort: 'Demo-Revier bei Hannover' },
   luftbild: 'NI',
+  kreise: true,
+  kreisDists: [...KREIS_STANDARD],
 
   sheet: null, sel: null, selField: null, selPost: null,
   drawing: null, pendingRevier: null, rName: 'Revier Neu',
@@ -125,19 +127,3 @@ export const initialState: AppState = {
     { id: 4, typ: 'Abschuss', when: '18.08.2026 · 06:10', title: 'Überläuferkeiler, 42 kg', line: 'Feldkante Lange Furche · Trichinenprobe entnommen', chips: ['Foto', 'Meldung offen'], wild: 'Schwarzwild' },
   ],
 };
-
-/** Windbewertung der Ansitze — Demo-Werte. Produktiv aus Open-Meteo / DWD. */
-export const ANSITZ_WIND: Array<[string, string, string]> = [
-  ['Kanzel Eichenschlag', 'Gut', 'Anstellung NO — Wind SW trägt ab. Weizen abgeerntet, freies Schussfeld.'],
-  ['Bodensitz Bachwiese', 'Gut', 'Wind SW steht richtig, Aufstieg trocken über Hangweg.'],
-  ['Kanzel Rapskante', 'Mäßig', 'Wind quer, Raps hoch — nur Ansprechen auf der Gasse möglich.'],
-  ['Leiter Südfeld', 'Schlecht', 'Wind trägt direkt in die Fläche. Zugang über Feldweg verwittert.'],
-];
-
-/** Offline-Kartenpakete: [Name, Meta, Aktion, Aktion verfügbar]. */
-export const DOWNLOADS: Array<[string, string, string, boolean]> = [
-  ['Revier Eichenkamp · Topo', '148 MB · aktuell (12.08.2026)', 'AKTUELL', false],
-  ['Revier Eichenkamp · Orthofoto', '612 MB · Update verfügbar', 'UPDATE', true],
-  ['Revier Ostkamp · Topo + Ortho', '470 MB · nicht geladen', 'LADEN', true],
-  ['Höhenlinien DGM1 Niedersachsen', '96 MB · aktuell', 'AKTUELL', false],
-];
