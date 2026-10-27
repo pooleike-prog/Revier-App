@@ -1,13 +1,15 @@
-import type { MouseEvent as ReactMouseEvent } from 'react';
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useApp } from '../state/store';
-import { ICON } from '../data/constants';
+import { ICON, M_PER_PX } from '../data/constants';
 import type { Extent, Field, PlanTool } from '../types';
 import type { Vertex } from '../lib/geo';
 import { compass, cut, fmt, ha, inPoly, parse, toStr } from '../lib/geo';
 import { currentJagd, treibenInBox, treibenOf, treibenName } from '../lib/selectors';
 import { addTreibenPatch, arrowGeom, extentPatch } from '../lib/planning';
 import { ctrlBox } from '../lib/styles';
-import { MAP_H, MAP_W, mapWrapStyle, toMap, usePan } from '../lib/mapInteraction';
+import { MAP_H, MAP_W, ZOOM_MAX, ZOOM_MIN, ZOOM_STUFE, mapWrapStyle, toMap, usePan, usePinch, zoomUm } from '../lib/mapInteraction';
+import { lngLatToPx } from '../lib/projection';
+import { useStandort } from '../state/useStandort';
 import { RealMap } from '../components/RealMap';
 import { Icon } from '../components/Icon';
 import { Toast } from '../components/Toast';
@@ -15,6 +17,36 @@ import { Toast } from '../components/Toast';
 export function PlanungScreen() {
   const { state: s, set, flash } = useApp();
   const pan = usePan(s.pPan, p => set({ pPan: p }));
+  const pinch = usePinch({ pan: s.pPan, zoom: s.pZoom }, (p, z) => set({ pPan: p, pZoom: z }), ZOOM_MIN, ZOOM_MAX);
+  // Punkte, Pfeile und Linien bleiben auf dem Bildschirm gleich groß, egal wie weit gezoomt ist.
+  const inv = 1 / s.pZoom;
+  const standort = useStandort(flash);
+  const ich = standort ? lngLatToPx(standort.lng, standort.lat) : null;
+
+  /** Mitte des sichtbaren Kartenfensters zwischen Ausschnitt-Chips und Werkzeugleiste. */
+  const MITTE = { x: 206, y: 215 };
+
+  /** Holt die eigene Position in die Mitte, bei kleinem Zoom etwas näher heran. */
+  const zuMir = () => {
+    if (!ich) { flash('Noch kein GPS-Empfang.'); return; }
+    set(p => {
+      const zoom = Math.max(p.pZoom, 2);
+      return { pZoom: zoom, pView: 'all', pPan: { x: MITTE.x - 200 * (1 - zoom) - ich.x * zoom, y: MITTE.y - 260 * (1 - zoom) - ich.y * zoom } };
+    });
+  };
+
+  const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (pinch.down(e)) { pan.end(); return; }
+    pan.start(e);
+  };
+  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (pinch.move(e)) return;
+    pan.move(e);
+  };
+  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
+    pinch.up(e);
+    pan.end();
+  };
 
   const jagd = currentJagd(s);
   const isDrueck = jagd.art === 'Drückjagd';
@@ -50,7 +82,7 @@ export function PlanungScreen() {
   };
 
   const onMapClick = (e: ReactMouseEvent<HTMLDivElement>) => {
-    if (pan.moved()) return;
+    if (pan.moved() || pinch.recent()) return;
     if (!s.pTool) return;
     const pt = toMap(e, s.pPan, s.pZoom);
 
@@ -157,11 +189,11 @@ export function PlanungScreen() {
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden', background: 'var(--m-grass)' }}>
         <RealMap pan={s.pPan} zoom={s.pZoom} art={s.mapStyle} night={s.night} vermerkOben={62} />
         <div
-          onPointerDown={pan.start}
-          onPointerMove={pan.move}
-          onPointerUp={pan.end}
-          onPointerCancel={pan.end}
-          onPointerLeave={pan.end}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerUp}
+          onPointerLeave={onPointerUp}
           onClick={onMapClick}
           style={{ position: 'absolute', inset: 0, touchAction: 'none', cursor: 'crosshair' }}
         >
@@ -178,8 +210,8 @@ export function PlanungScreen() {
                     fill="var(--m-field)"
                     fillOpacity={0.35}
                     stroke={on ? 'var(--accent)' : assigned ? 'var(--m-label)' : 'var(--m-stroke)'}
-                    strokeWidth={on ? 3 : assigned ? 2 : 1}
-                    strokeDasharray={assigned ? '0' : '4 4'}
+                    strokeWidth={(on ? 2.5 : assigned ? 1.5 : 1) * inv}
+                    strokeDasharray={assigned ? '0' : `${4 * inv} ${4 * inv}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (s.pTool) return;
@@ -197,19 +229,19 @@ export function PlanungScreen() {
                   points={r.points}
                   fill="none"
                   stroke={r.id === s.activeRevier ? 'var(--accent)' : 'var(--m-label)'}
-                  strokeWidth={1.5}
-                  strokeDasharray={r.kind === 'eigen' ? '0' : '10 6'}
+                  strokeWidth={1.5 * inv}
+                  strokeDasharray={r.kind === 'eigen' ? '0' : `${10 * inv} ${6 * inv}`}
                   opacity={0.6}
                 />
               ))}
 
               {s.arrows.filter(a => treibenIds.indexOf(a.treiben) >= 0).map(a => {
-                const g = arrowGeom(a);
+                const g = arrowGeom(a, inv);
                 const on = a.treiben === s.selTreiben;
                 const col = on ? 'var(--accent)' : 'var(--m-label)';
                 return (
                   <g key={a.id} opacity={on ? 1 : 0.5}>
-                    <path d={g.line} stroke={col} strokeWidth={on ? 4 : 2.5} fill="none" strokeLinecap="round" />
+                    <path d={g.line} stroke={col} strokeWidth={(on ? 3 : 2) * inv} fill="none" strokeLinecap="round" />
                     <polygon points={g.head} fill={col} />
                   </g>
                 );
@@ -221,24 +253,24 @@ export function PlanungScreen() {
                   x={x.x1} y={x.y1} width={x.x2 - x.x1} height={x.y2 - x.y1}
                   fill="none"
                   stroke={s.pView === x.id ? 'var(--accent)' : 'var(--m-label)'}
-                  strokeWidth={1.5} strokeDasharray="6 5"
+                  strokeWidth={1.5 * inv} strokeDasharray={`${6 * inv} ${5 * inv}`}
                 />
               ))}
 
               {s.pPend && (
-                <circle cx={s.pPend.x} cy={s.pPend.y} r={6} fill="none" stroke="var(--accent)" strokeWidth={2} />
+                <circle cx={s.pPend.x} cy={s.pPend.y} r={6 * inv} fill="none" stroke="var(--accent)" strokeWidth={2 * inv} />
               )}
             </svg>
 
             {/* Ansitze und Kirrungen bleiben zur Orientierung sichtbar, zurückgenommen. */}
             {s.markers.filter(m => m.type === 'ansitz' || m.type === 'kirrung').map(m => (
               <div key={m.id} style={{
-                position: 'absolute', left: m.x - 11, top: m.y - 11, width: 22, height: 22,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+                position: 'absolute', left: m.x - 9, top: m.y - 9, width: 18, height: 18,
+                transform: `scale(${inv})`, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
                 border: '1.5px solid var(--m-label)', color: 'var(--m-label)', background: 'var(--surf)',
                 opacity: 0.55, boxSizing: 'border-box',
               }}>
-                <Icon d={ICON[m.type]} size={14} stroke={2} />
+                <Icon d={ICON[m.type]} size={12} stroke={2} />
               </div>
             ))}
 
@@ -249,13 +281,13 @@ export function PlanungScreen() {
                   key={p.id}
                   onClick={(e) => { e.stopPropagation(); set({ selPost: p.id, sheet: 'post' }); }}
                   style={{
-                    position: 'absolute', left: p.x - 14, top: p.y - 14, width: 28, height: 28,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'absolute', left: p.x - 11, top: p.y - 11, width: 22, height: 22,
+                    transform: `scale(${inv})`, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderRadius: isDrueck ? 0 : '50%',
                     border: '2px solid ' + (on ? 'var(--accent)' : 'var(--m-label)'),
                     background: on ? 'var(--accent)' : 'var(--surf)',
                     color: on ? '#fff' : 'var(--m-label)',
-                    fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', cursor: 'pointer',
+                    fontSize: 11, fontWeight: 600, fontVariantNumeric: 'tabular-nums', cursor: 'pointer',
                     boxSizing: 'border-box', zIndex: 6, opacity: on ? 1 : 0.75,
                   }}
                 >{p.nr}</div>
@@ -270,13 +302,31 @@ export function PlanungScreen() {
               const on = t.id === s.selTreiben;
               return (
                 <div key={t.id} style={{
-                  position: 'absolute', left: Math.round(cx - 60), top: Math.round(minY - 32), width: 120,
-                  textAlign: 'center', pointerEvents: 'none', fontSize: 10, fontWeight: 600, letterSpacing: '.04em',
-                  padding: '3px 0', color: on ? '#fff' : 'var(--m-label)',
+                  position: 'absolute', left: cx, top: minY - 14 * inv,
+                  transform: `translate(-50%,-100%) scale(${inv})`, transformOrigin: 'bottom center',
+                  whiteSpace: 'nowrap', textAlign: 'center', pointerEvents: 'none', fontSize: 10, fontWeight: 600, letterSpacing: '.04em',
+                  padding: '2px 6px', color: on ? '#fff' : 'var(--m-label)',
                   background: on ? 'var(--accent)' : 'var(--surf)', opacity: on ? 1 : 0.7, zIndex: 4,
                 }}>{t.nr}. {t.name}</div>
               );
             })}
+
+            {/* Eigene Position: Genauigkeitskreis maßstabsgerecht, Punkt zoomfest. */}
+            {ich && standort && (
+              <>
+                <div style={{
+                  position: 'absolute', left: ich.x - standort.genau / M_PER_PX, top: ich.y - standort.genau / M_PER_PX,
+                  width: 2 * standort.genau / M_PER_PX, height: 2 * standort.genau / M_PER_PX, borderRadius: '50%',
+                  background: 'color-mix(in oklab, var(--accent) 12%, transparent)', pointerEvents: 'none', zIndex: 7,
+                }} />
+                <div style={{
+                  position: 'absolute', left: ich.x - 7, top: ich.y - 7, width: 14, height: 14,
+                  transform: `scale(${inv})`, borderRadius: '50%', boxSizing: 'border-box',
+                  background: 'var(--accent)', border: '3px solid var(--surf)',
+                  boxShadow: '0 0 0 2px var(--accent)', pointerEvents: 'none', zIndex: 7,
+                }} />
+              </>
+            )}
           </div>
         </div>
 
@@ -302,8 +352,9 @@ export function PlanungScreen() {
 
         <div style={{ position: 'absolute', top: 10, right: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button onClick={() => set({ sheet: 'liste' })} style={{ ...ctrlBox, fontSize: 10, fontWeight: 600, letterSpacing: '.04em' }}>LISTE</button>
-          <button onClick={() => set(p => ({ pZoom: Math.min(2.4, p.pZoom + 0.25) }))} aria-label="Vergrößern" style={{ ...ctrlBox, fontSize: 22, lineHeight: 1 }}>+</button>
-          <button onClick={() => set(p => ({ pZoom: Math.max(0.5, p.pZoom - 0.25) }))} aria-label="Verkleinern" style={{ ...ctrlBox, fontSize: 22, lineHeight: 1 }}>−</button>
+          <button onClick={() => set(p => { const z = zoomUm(p.pPan, p.pZoom, Math.min(ZOOM_MAX, p.pZoom * ZOOM_STUFE), MITTE); return { pZoom: z.zoom, pPan: z.pan }; })} aria-label="Vergrößern" style={{ ...ctrlBox, fontSize: 22, lineHeight: 1 }}>+</button>
+          <button onClick={() => set(p => { const z = zoomUm(p.pPan, p.pZoom, Math.max(ZOOM_MIN, p.pZoom / ZOOM_STUFE), MITTE); return { pZoom: z.zoom, pPan: z.pan }; })} aria-label="Verkleinern" style={{ ...ctrlBox, fontSize: 22, lineHeight: 1 }}>−</button>
+          <button onClick={zuMir} aria-label="Auf eigenen Standort" style={{ ...ctrlBox, fontSize: 20, lineHeight: 1, ...(ich ? null : { opacity: 0.5 }) }}>◎</button>
         </div>
 
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'var(--surf)', borderTop: '2px solid var(--line)' }}>

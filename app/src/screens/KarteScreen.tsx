@@ -7,7 +7,7 @@ import type { Marker, MarkerType } from '../types';
 import { compass, fmt, gps, ha, parse } from '../lib/geo';
 import { activeRevier, visibleRevierIds } from '../lib/selectors';
 import { chip, ctrlBox, pinStyle } from '../lib/styles';
-import { MAP_H, MAP_W, mapWrapStyle, toMap, usePan, usePinch } from '../lib/mapInteraction';
+import { MAP_H, MAP_W, ZOOM_MAX, ZOOM_MIN, ZOOM_STUFE, mapWrapStyle, toMap, useLongPress, usePan, usePinch, zoomUm } from '../lib/mapInteraction';
 import { RealMap } from '../components/RealMap';
 import { kachelAdressen } from '../lib/kartenquellen';
 import { vorladen } from '../lib/kachelspeicher';
@@ -23,30 +23,23 @@ import { AimOverlay, RadialFab } from './karte/AimPanel';
  *  gezeichnet, nicht als 30-px-Symbolkasten — sonst verdeckt der Pin die Ringe. */
 const ringed = (m: Marker) => m.type === 'ansitz' && !!m.dists && m.dists.length > 0;
 
-/** Zoomgrenzen der Revierkarte: 0,6 ≈ 20 m/px bis 16 ≈ 0,75 m/px (Luftbild). */
-const ZOOM_MIN = 0.6, ZOOM_MAX = 16, ZOOM_STUFE = 1.5;
 /** Mehr Kacheln lädt „Revier offline speichern“ nicht auf einmal. */
 const MAX_KACHELN = 6000;
-
-/** Zoomen um die Mitte des Kartenfensters statt um die Rastermitte — sonst
- *  liefe das Revier bei starker Vergrößerung aus dem Bild. */
-function zoomUm(pan: { x: number; y: number }, alt: number, neu: number) {
-  // Fenstermitte bei 206/260 wie in placeAtCenter.
-  const f = neu / alt;
-  return {
-    zoom: neu,
-    pan: { x: 206 - 200 - (206 - 200 - pan.x) * f, y: 260 - 260 - (260 - 260 - pan.y) * f },
-  };
-}
 
 export function KarteScreen() {
   const { state: s, set, flash, addMarker } = useApp();
   const pan = usePan(s.pan, p => set({ pan: p }));
   const pinch = usePinch({ pan: s.pan, zoom: s.zoom }, (p, z) => set({ pan: p, zoom: z }), ZOOM_MIN, ZOOM_MAX);
   const karte = useRef<MapLibreMap | null>(null);
+  // Messen per Ziehen: Erst ab 4 px gilt es als Ziehen; danach darf das
+  // abschließende Click-Event den Startpunkt nicht auf das Ende legen.
+  const messZug = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const laden = useRef<AbortController | null>(null);
   const [offline, setOffline] = useState('');
   const inv = 1 / s.zoom;
+  // Grenzpunkte setzt ein langer Druck — Tippen und Ziehen verschieben nur.
+  const halten = useLongPress({ pan: s.pan, zoom: s.zoom }, pt =>
+    set(st => (st.drawing ? { drawing: st.drawing.concat([[pt.x, pt.y]]) } : {})));
   const standort = useStandort(flash);
   const ich = standort ? lngLatToPx(standort.lng, standort.lat) : null;
 
@@ -61,7 +54,9 @@ export function KarteScreen() {
   const mFrom = s.measFrom ?? (cur ? { x: cur.x, y: cur.y } : ich ?? { x: 200, y: 260 });
   const mFromName = s.measFrom ? 'gesetztem Punkt' : (cur ? cur.name : 'eigenem Standort');
   const mTo = s.measTo;
-  const measM = mTo ? Math.round(Math.hypot(mTo.x - mFrom.x, mTo.y - mFrom.y) * M_PER_PX / 5) * 5 : 0;
+  // Unter 100 m auf den Meter genau, darüber auf 5 m gerundet.
+  const measRoh = mTo ? Math.hypot(mTo.x - mFrom.x, mTo.y - mFrom.y) * M_PER_PX : 0;
+  const measM = measRoh < 100 ? Math.round(measRoh) : Math.round(measRoh / 5) * 5;
   const measDir = mTo ? compass(mTo.x - mFrom.x, mTo.y - mFrom.y) : '';
 
   const showToolbar = s.ctrl === 'werkzeug' && !s.drawing && !s.aim;
@@ -73,26 +68,37 @@ export function KarteScreen() {
     : 'Werkzeug wählen, dann Karte antippen';
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (pinch.down(e)) { pan.end(); return; }
+    if (pinch.down(e)) { pan.end(); halten.cancel(); return; }
+    if (s.drawing) halten.down(e);
+    if (s.measure) messZug.current = { x: e.clientX, y: e.clientY, moved: false };
     pan.start(e);
   };
 
   const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
     pinch.up(e);
     pan.end();
+    halten.cancel();
+    setTimeout(() => { messZug.current = null; }, 0);
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    if (pinch.move(e)) return;
-    if (s.measure) { set({ measTo: toMap(e, s.pan, s.zoom) }); return; }
+    if (pinch.move(e)) { halten.cancel(); return; }
+    halten.move(e);
+    if (s.measure) {
+      const z = messZug.current;
+      if (!z) return;
+      if (Math.abs(e.clientX - z.x) + Math.abs(e.clientY - z.y) > 4) z.moved = true;
+      if (z.moved) set({ measTo: toMap(e, s.pan, s.zoom) });
+      return;
+    }
     pan.move(e);
   };
 
   const onMapClick = (e: ReactMouseEvent<HTMLDivElement>) => {
-    if (pan.moved() || pinch.recent()) return;
+    if (pan.moved() || pinch.recent() || halten.fired()) return;
     const pt = toMap(e, s.pan, s.zoom);
-    if (s.measure) { set({ measFrom: pt, measTo: pt }); return; }
-    if (s.drawing) { set(st => ({ drawing: (st.drawing ?? []).concat([[pt.x, pt.y]]) })); return; }
+    if (s.measure) { if (!messZug.current?.moved) set({ measFrom: pt, measTo: pt }); return; }
+    if (s.drawing) return;
     if (s.pickTarget) {
       // Standort für den Tagebucheintrag: den nächstgelegenen Marker benennen,
       // sonst die Koordinate.
@@ -109,6 +115,7 @@ export function KarteScreen() {
 
   const selectMarker = (id: number) => (e: ReactMouseEvent) => {
     e.stopPropagation();
+    if (s.drawing) return;
     set({ sel: id, sheet: 'marker', selField: null });
   };
 
@@ -199,9 +206,10 @@ export function KarteScreen() {
                 fill="var(--m-field)"
                 fillOpacity={0.35}
                 stroke={s.selField === f.id ? 'var(--accent)' : 'var(--m-stroke)'}
-                strokeWidth={s.selField === f.id ? 3 : 1.5}
-                vectorEffect="non-scaling-stroke"
+                strokeWidth={(s.selField === f.id ? 3 : 1.5) * inv}
                 onClick={(e) => { e.stopPropagation(); set({ selField: f.id, sheet: 'field', sel: null }); }}
+                // Beim Zeichnen und Messen gehört jeder Druck der Karte, nicht dem Schlag.
+                pointerEvents={s.drawing || s.measure ? 'none' : undefined}
                 style={{ cursor: 'pointer' }}
               />
             ))}
@@ -214,19 +222,32 @@ export function KarteScreen() {
                 fillOpacity={r.id === act.id ? 0.35 : 0.06}
                 pointerEvents="none"
                 stroke={r.id === act.id ? 'var(--accent)' : 'var(--m-label)'}
-                strokeWidth={r.id === act.id ? 3 : 2}
-                strokeDasharray={r.kind === 'eigen' ? '0' : '10 6'}
-                vectorEffect="non-scaling-stroke"
+                strokeWidth={(r.id === act.id ? 2.5 : 1.5) * inv}
+                strokeDasharray={r.kind === 'eigen' ? '0' : `${10 * inv} ${6 * inv}`}
               />
             ))}
 
-            {s.drawing && (
+            {/* Die entstehende Fläche wächst mit jedem Punkt sichtbar mit;
+                die Schlusskante zum ersten Punkt ist gestrichelt. */}
+            {s.drawing && s.drawing.length > 2 && (
+              <polygon
+                points={s.drawing.map(p => p.join(',')).join(' ')}
+                fill="var(--accent)" fillOpacity={0.22} stroke="none" pointerEvents="none"
+              />
+            )}
+            {s.drawing && s.drawing.length > 1 && (
               <polyline
                 points={s.drawing.map(p => p.join(',')).join(' ')}
-                fill="rgba(111,90,35,0.12)"
-                stroke="var(--accent)"
-                strokeWidth={2}
-                vectorEffect="non-scaling-stroke"
+                fill="none" stroke="var(--accent)" strokeWidth={2 * inv}
+                strokeLinejoin="round" pointerEvents="none"
+              />
+            )}
+            {s.drawing && s.drawing.length > 2 && (
+              <line
+                x1={s.drawing[s.drawing.length - 1][0]} y1={s.drawing[s.drawing.length - 1][1]}
+                x2={s.drawing[0][0]} y2={s.drawing[0][1]}
+                stroke="var(--accent)" strokeWidth={1.5 * inv} strokeDasharray={`${5 * inv} ${4 * inv}`}
+                pointerEvents="none"
               />
             )}
           </svg>
@@ -257,8 +278,9 @@ export function KarteScreen() {
 
           {(s.drawing ?? []).map((p, i) => (
             <div key={i} style={{
-              position: 'absolute', left: p[0] - 5, top: p[1] - 5,
-              width: 10, height: 10, background: 'var(--accent)', transform: `scale(${inv})`,
+              position: 'absolute', left: p[0] - 5, top: p[1] - 5, width: 10, height: 10,
+              background: i === 0 ? 'var(--surf)' : 'var(--accent)', border: '2px solid var(--accent)',
+              boxSizing: 'border-box', transform: `scale(${inv})`, pointerEvents: 'none', zIndex: 5,
             }} />
           ))}
 
@@ -301,12 +323,12 @@ export function KarteScreen() {
               >
                 <line
                   x1={mFrom.x} y1={mFrom.y} x2={mTo.x} y2={mTo.y}
-                  stroke="var(--accent)" strokeWidth={2} strokeDasharray="6 4" vectorEffect="non-scaling-stroke"
+                  stroke="var(--accent)" strokeWidth={1.5 * inv} strokeDasharray={`${6 * inv} ${4 * inv}`}
                 />
               </svg>
               <div style={{
-                position: 'absolute', left: mFrom.x, top: mFrom.y, width: 20, height: 20,
-                marginLeft: -10, marginTop: -10, transform: `scale(${1 / s.zoom})`, borderRadius: '50%',
+                position: 'absolute', left: mFrom.x - 6, top: mFrom.y - 6, width: 12, height: 12,
+                transform: `scale(${inv})`, borderRadius: '50%',
                 border: '2px solid var(--accent)', background: 'color-mix(in oklab, var(--accent) 22%, transparent)',
                 boxSizing: 'border-box', pointerEvents: 'none', zIndex: 5,
               }} />
@@ -430,8 +452,10 @@ export function KarteScreen() {
       {s.drawing && (
         <DrawPanel
           hint={s.drawing.length > 2
-            ? `${s.drawing.length} Punkte · ${fmt(ha(s.drawing), 0)} ha umschlossen`
-            : 'Grenzpunkte antippen — mindestens drei. Später auch per GPS-Track ablaufbar.'}
+            ? `${s.drawing.length} Punkte · ${fmt(ha(s.drawing), ha(s.drawing) < 10 ? 2 : 1)} ha — lang drücken für den nächsten Punkt`
+            : s.drawing.length
+              ? `${s.drawing.length} von mindestens 3 Punkten — lang drücken für den nächsten`
+              : 'Lang auf die Karte drücken setzt den ersten Grenzpunkt. Ziehen verschiebt, zwei Finger zoomen.'}
           onFinish={finishDraw}
           onUndo={() => set(p => ({ drawing: (p.drawing ?? []).slice(0, -1) }))}
           onCancel={() => set({ drawing: null })}

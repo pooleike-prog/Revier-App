@@ -8,6 +8,20 @@ export const MAP_H = 520;
 const ORIGIN_X = MAP_W / 2;
 const ORIGIN_Y = MAP_H / 2;
 
+/** Zoomgrenzen von Revier- und Planungskarte: 0,6 ≈ 20 m/px bis 16 ≈ 0,75 m/px (Luftbild). */
+export const ZOOM_MIN = 0.6, ZOOM_MAX = 16, ZOOM_STUFE = 1.5;
+
+/** Zoomen um die Mitte des Kartenfensters statt um die Rastermitte — sonst
+ *  liefe das Revier bei starker Vergrößerung aus dem Bild. */
+export function zoomUm(pan: Point, alt: number, neu: number, mitte: Point = { x: 206, y: 260 }) {
+  // Fenstermitte der Revierkarte bei 206/260 wie in placeAtCenter.
+  const f = neu / alt;
+  return {
+    zoom: neu,
+    pan: { x: mitte.x - ORIGIN_X - (mitte.x - ORIGIN_X - pan.x) * f, y: mitte.y - ORIGIN_Y - (mitte.y - ORIGIN_Y - pan.y) * f },
+  };
+}
+
 /** Verkleinert die Seite das Gerät (schmales Display, Browser-Zoom), rechnen
  *  Zeiger-Koordinaten in einem anderen Maßstab als das Kartenraster. Der Faktor
  *  hier holt das zurück, damit ein Tipp dort landet, wo der Finger war. */
@@ -26,9 +40,12 @@ export function toMap(
   const el = e.currentTarget;
   const box = el.getBoundingClientRect();
   const k = cssScale(el);
+  // Auf 1/100 Rasterpixel (12 cm) runden — ganze Pixel wären 12 m und bei
+  // starkem Zoom viel zu grob für Messen und Grenzpunkte.
+  const r = (v: number) => Math.round(v * 100) / 100;
   return {
-    x: Math.round(((e.clientX - box.left) / k - pan.x - ORIGIN_X * (1 - zoom)) / zoom),
-    y: Math.round(((e.clientY - box.top) / k - pan.y - ORIGIN_Y * (1 - zoom)) / zoom),
+    x: r(((e.clientX - box.left) / k - pan.x - ORIGIN_X * (1 - zoom)) / zoom),
+    y: r(((e.clientY - box.top) / k - pan.y - ORIGIN_Y * (1 - zoom)) / zoom),
   };
 }
 
@@ -125,5 +142,53 @@ export function usePinch(
       if (start.current && pts.current.size < 2) { start.current = null; ende.current = Date.now(); }
     },
     recent: () => pts.current.size >= 2 || Date.now() - ende.current < 350,
+  };
+}
+
+export interface LongPressHandle {
+  down: (e: ReactPointerEvent<HTMLElement>) => void;
+  move: (e: ReactPointerEvent<HTMLElement>) => void;
+  cancel: () => void;
+  /** True, wenn der letzte Druck ein langer war — das folgende Click-Event
+   *  darf dann nichts mehr auslösen. */
+  fired: () => boolean;
+}
+
+/** Langer Druck (halbe Sekunde, Finger ruhig) setzt einen Punkt. Ein kurzes
+ *  Tippen oder Ziehen bleibt Verschieben — so landen beim Wandern über die
+ *  Karte keine Punkte aus Versehen. */
+export function useLongPress(
+  view: { pan: Point; zoom: number },
+  onPress: (pt: Point) => void,
+  ms = 500,
+): LongPressHandle {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const at = useRef<Point>({ x: 0, y: 0 });
+  const done = useRef(false);
+
+  const cancel = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+
+  return {
+    down: (e) => {
+      cancel();
+      done.current = false;
+      at.current = { x: e.clientX, y: e.clientY };
+      const pt = toMap(e, view.pan, view.zoom);
+      timer.current = setTimeout(() => {
+        timer.current = null;
+        done.current = true;
+        // Kurzes Rütteln als Bestätigung — spürbar auch mit Handschuh.
+        try { navigator.vibrate?.(35); } catch { /* ohne Vibration weiter */ }
+        onPress(pt);
+      }, ms);
+    },
+    move: (e) => {
+      if (timer.current && Math.hypot(e.clientX - at.current.x, e.clientY - at.current.y) > 10) cancel();
+    },
+    cancel,
+    fired: () => done.current,
   };
 }

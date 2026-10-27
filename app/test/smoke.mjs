@@ -136,6 +136,15 @@ await check('Messen-Modus lässt sich einschalten', async () => {
 await check('Grenze zeichnen zeigt den Hinweis', async () => {
   await page.getByRole('button', { name: 'GRENZE' }).click();
   await page.getByText('Reviergrenze zeichnen').waitFor({ timeout: 2000 });
+  // Langer Druck setzt Grenzpunkte, ab dem dritten steht die Fläche in ha da.
+  const box = await page.locator('[style*="crosshair"]').first().boundingBox();
+  for (const [fx, fy] of [[0.25, 0.3], [0.7, 0.3], [0.5, 0.6]]) {
+    await page.mouse.move(box.x + box.width * fx, box.y + box.height * fy);
+    await page.mouse.down();
+    await page.waitForTimeout(650);
+    await page.mouse.up();
+  }
+  await page.getByText(/3 Punkte · .* ha/).waitFor({ timeout: 2000 });
   await page.getByRole('button', { name: 'Abbr.' }).click();
 });
 

@@ -9,7 +9,8 @@ export function parse(pts: string): Vertex[] {
 }
 
 export function toStr(p: Vertex[]): string {
-  return p.map(q => Math.round(q[0]) + ',' + Math.round(q[1])).join(' ');
+  const r = (v: number) => Math.round(v * 100) / 100;
+  return p.map(q => r(q[0]) + ',' + r(q[1])).join(' ');
 }
 
 /** Shoelace area of a polygon, converted from map pixels to hectares. */
