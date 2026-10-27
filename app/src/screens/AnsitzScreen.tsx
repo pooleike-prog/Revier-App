@@ -1,6 +1,5 @@
 import { useApp } from '../state/store';
 import type { LightInfo } from '../lib/astro';
-import { ANSITZ_WIND } from '../data/seed';
 import { WERBEFREI } from '../data/settings';
 import { AdSlot } from '../components/AdSlot';
 
@@ -135,22 +134,8 @@ export function AnsitzScreen({ light }: { light: LightInfo }) {
         <div style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--muted)' }}>{light.rule}</div>
       </div>
 
-      {ANSITZ_WIND.map(([name, rating, line]) => (
-        <div key={name} style={{ padding: 14, borderBottom: '1px solid var(--rule)' }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-            <div style={{ flex: 1, fontSize: 17, fontWeight: 600, letterSpacing: '-.01em' }}>{name}</div>
-            <span style={{
-              fontSize: 10, fontWeight: 600, letterSpacing: '.1em', textTransform: 'uppercase', padding: '4px 7px',
-              border: '2px solid ' + (rating === 'Gut' ? 'var(--accent)' : 'var(--rule)'),
-              color: rating === 'Gut' ? 'var(--accent)' : 'var(--muted)',
-            }}>{rating}</span>
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4, lineHeight: 1.45 }}>{line}</div>
-        </div>
-      ))}
-
       {!WERBEFREI && (
-        <AdSlot text="Platzhalter — Werbeplatz unter den Ansitzen. Kein Bezug zu Standort, Wildart oder Tagebuchdaten." />
+        <AdSlot text="Platzhalter — Werbeplatz am Ende der Ansitz-Seite. Kein Bezug zu Standort, Wildart oder Tagebuchdaten." />
       )}
 
       <div style={{ padding: 14, fontSize: 12, lineHeight: 1.5, color: 'var(--muted)' }}>

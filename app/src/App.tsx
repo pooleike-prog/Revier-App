@@ -73,7 +73,7 @@ function Canvas() {
         }}>
           Neu: Reiter <b>Planung</b> mit Vorstehschützen, Treibrichtungs-Pfeilen, Flächenteilung und
           wählbaren Kartenausschnitten — für Treibjagd und Drückjagd. Marker tragen jetzt Symbole; in{' '}
-          <b>Mehr → Kartenzeichen</b> auf Buchstaben umschaltbar. Jagdzeiten sind nach Schalenwild,
+          <b>Einstellungen → Karte · Zeichen</b> auf Buchstaben umschaltbar. Jagdzeiten sind nach Schalenwild,
           Haarwild, Raubwild und Federwild gegliedert.
         </p>
       </div>
@@ -137,7 +137,7 @@ function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
     tagebuch: `${s.journal.length} Einträge · Jagdjahr 2026/27`,
     zeiten: 'Niedersachsen · 4 Kategorien',
     ansitz: light.sub,
-    mehr: 'Offline · Recht · Bedienung',
+    mehr: 'Karte · Standort · Reviere · Daten',
   };
 
   return (

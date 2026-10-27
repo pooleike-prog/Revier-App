@@ -128,7 +128,13 @@ export interface EntryForm {
 
 export type SheetKind =
   | 'marker' | 'field' | 'reviere' | 'legend'
-  | 'entry' | 'naming' | 'liste' | 'post' | 'newjagd';
+  | 'entry' | 'naming' | 'liste' | 'post' | 'newjagd' | 'standort';
+
+/** Länder mit offenem Luftbild, siehe LUFTBILD in lib/kartenquellen.ts. */
+export type LuftbildLand = 'NI' | 'NW' | 'BB' | 'BY';
+
+/** Wo das Kartenraster auf der Erde liegt (siehe lib/projection.ts). */
+export interface KartenAnker { lat: number; lng: number; ort: string }
 
 export interface AppState {
   screen: Screen;
@@ -142,6 +148,13 @@ export interface AppState {
   aim: MarkerType | null;
   pan: Point;
   zoom: number;
+  anker: KartenAnker;
+  /** Bundesland, dessen Luftbild die Satellitenansicht zeigt. */
+  luftbild: LuftbildLand;
+  /** Entfernungskreise um die eigene GPS-Position zeigen. */
+  kreise: boolean;
+  /** Radien der Entfernungskreise in Metern, aufsteigend. */
+  kreisDists: number[];
 
   sheet: SheetKind | null;
   sel: number | null;
