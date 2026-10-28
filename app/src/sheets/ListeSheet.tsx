@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useApp } from '../state/store';
 import { compass } from '../lib/geo';
 import { currentJagd, treibenInBox, treibenOf } from '../lib/selectors';
-import { addTreibenPatch, extentPatch } from '../lib/planning';
+import { addTreibenPatch, extentPatch, jagdLoeschenPatch } from '../lib/planning';
 import { block, label, tag } from '../lib/styles';
 import { sheetBody } from '../components/Sheet';
 
@@ -11,6 +12,16 @@ export function ListeSheet() {
   const isDrueck = jagd.art === 'Drückjagd';
   const myTreiben = treibenOf(s, jagd.id);
   const boxes = s.extents.filter(x => x.jagd === jagd.id);
+  // Löschen braucht einen zweiten Druck — eine versehentlich gelöschte Planung ist weg.
+  const [fragen, setFragen] = useState(false);
+
+  /** Entfernt die Jagd samt Treiben, Ständen, Richtungen und Ausschnitten und
+   *  springt auf die nächste verbleibende Jagd. */
+  const jagdLoeschen = () => {
+    if (!fragen) { setFragen(true); return; }
+    set(jagdLoeschenPatch(s, jagd.id));
+    flash(`${jagd.art} vom ${jagd.datum} gelöscht.`);
+  };
 
   return (
     <div style={{ ...sheetBody, gap: 16 }}>
@@ -57,16 +68,28 @@ export function ListeSheet() {
           {boxes.map(x => {
             const inside = treibenInBox(s, x);
             return (
-              <button
-                key={x.id}
-                onClick={() => { set(extentPatch(x)); set({ sheet: null }); }}
-                style={block(s.pView === x.id)}
-              >
-                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>{x.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-                  {inside.length ? inside.map(t => t.nr + '. ' + t.name).join(' · ') : 'noch keine Treiben enthalten'}
-                </div>
-              </button>
+              <div key={x.id} style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => { set(extentPatch(x, s.pRot)); set({ sheet: null }); }}
+                  style={{ ...block(s.pView === x.id), flex: 1 }}
+                >
+                  <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>{x.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    {inside.length ? inside.map(t => t.nr + '. ' + t.name).join(' · ') : 'noch keine Treiben enthalten'}
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    set(p => ({ extents: p.extents.filter(e => e.id !== x.id), pView: p.pView === x.id ? 'all' : p.pView }));
+                    flash(x.name + ' gelöscht.');
+                  }}
+                  aria-label={x.name + ' löschen'}
+                  style={{
+                    minWidth: 52, border: '2px solid var(--line)', background: 'transparent',
+                    color: 'var(--ink)', fontSize: 18, cursor: 'pointer',
+                  }}
+                >×</button>
+              </div>
             );
           })}
         </div>
@@ -92,6 +115,25 @@ export function ListeSheet() {
       <div style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--muted)' }}>
         Der Ausdruck enthält je Ausschnitt eine Kartenseite mit Standnummern und die Liste als Tabelle —
         für Jagdleitung und Standkarten der Schützen.
+      </div>
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={jagdLoeschen}
+          style={{
+            flex: 1, minHeight: 54, padding: '0 14px', textAlign: 'left', cursor: 'pointer',
+            fontSize: 14, fontWeight: 600,
+            border: '2px solid ' + (fragen ? '#b3261e' : 'var(--line)'),
+            background: fragen ? '#b3261e' : 'transparent',
+            color: fragen ? '#fff' : 'var(--ink)',
+          }}
+        >{fragen ? 'Wirklich löschen? Nochmal drücken' : `Planung löschen (${jagd.art}, ${jagd.datum})`}</button>
+        {fragen && (
+          <button onClick={() => setFragen(false)} style={{
+            minHeight: 54, padding: '0 14px', border: '2px solid var(--line)', background: 'transparent',
+            color: 'var(--ink)', fontSize: 14, cursor: 'pointer',
+          }}>Behalten</button>
+        )}
       </div>
     </div>
   );

@@ -130,7 +130,7 @@ export const NAV_ITEMS: Array<[string, string, string]> = [
   ['tagebuch', 'Tagebuch', 'M4 3h13a2 2 0 012 2v14a2 2 0 01-2 2H4zM8 3v18M11 9h6M11 13h6'],
   ['zeiten', 'Zeiten', 'M4 5h16v16H4zM8 3v4M16 3v4M4 11h16'],
   ['ansitz', 'Ansitz', 'M3 8h11a3 3 0 100-6 3 3 0 00-3 3M3 16h7a3 3 0 110 6 3 3 0 01-3-3M3 12h15'],
-  ['mehr', 'Mehr', 'M12 9a3 3 0 100 6 3 3 0 000-6M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2'],
+  ['mehr', 'Einstellungen', 'M12 9a3 3 0 100 6 3 3 0 000-6M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2'],
 ];
 
 /** Device frame of the design: Android phone at 412 × 812. */

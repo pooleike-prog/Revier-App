@@ -11,6 +11,8 @@ import { PostSheet } from './PostSheet';
 import { NewJagdSheet } from './NewJagdSheet';
 import { EntrySheet } from './EntrySheet';
 import { NamingSheet } from './NamingSheet';
+import { StandortSheet } from './StandortSheet';
+import { PlanFlaecheSheet } from './PlanFlaecheSheet';
 
 /** Wählt Kopfzeile und Inhalt des offenen Sheets. */
 export function SheetHost() {
@@ -30,9 +32,11 @@ export function SheetHost() {
     legend: 'Kartenzeichen',
     entry: 'Tagebuch',
     naming: 'Neues Revier',
+    standort: 'Revierlage',
     liste: jagd.art + ' · ' + jagd.datum,
     post: post ? treibenName(s, post.treiben) : '',
     newjagd: 'Jagdplanung',
+    planflaeche: isDrueck ? 'Gebiet' : 'Fläche',
   };
 
   const title: Record<string, string> = {
@@ -42,9 +46,11 @@ export function SheetHost() {
     legend: 'Was liegt auf der Karte',
     entry: 'Eintrag anlegen',
     naming: 'Grenze übernehmen',
+    standort: 'Revier auf die Karte setzen',
     liste: isDrueck ? 'Stände und Gebiete' : 'Treiben in Reihenfolge',
     post: post ? (isDrueck ? 'Stand ' : 'Vorstehschütze ') + post.nr : '',
-    newjagd: 'Neue Jagd anlegen',
+    newjagd: 'Neue Planung',
+    planflaeche: 'Bezeichnung und Frucht',
   };
 
   let body: ReactNode = null;
@@ -56,8 +62,10 @@ export function SheetHost() {
     case 'liste': body = <ListeSheet />; break;
     case 'post': body = post ? <PostSheet post={post} /> : null; break;
     case 'newjagd': body = <NewJagdSheet />; break;
+    case 'planflaeche': body = <PlanFlaecheSheet />; break;
     case 'entry': body = <EntrySheet />; break;
     case 'naming': body = <NamingSheet />; break;
+    case 'standort': body = <StandortSheet />; break;
   }
 
   return (

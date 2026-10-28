@@ -5,7 +5,7 @@ interface Props {
   onCancel: () => void;
 }
 
-/** Reviergrenze zeichnen — Grenzpunkte antippen, dann Fläche schließen. */
+/** Reviergrenze zeichnen — Grenzpunkte per langem Druck setzen, dann Fläche schließen. */
 export function DrawPanel({ hint, onFinish, onUndo, onCancel }: Props) {
   return (
     <div style={{

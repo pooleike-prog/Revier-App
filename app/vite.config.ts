@@ -4,6 +4,8 @@ import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
   base: './',
+  // MapLibre lädt seinen Worker als ES-Modul.
+  worker: { format: 'es' },
   plugins: [
     react(),
     VitePWA({
