@@ -183,21 +183,20 @@ await check('Jagdzeiten: vier Kategorien, Schalenwild offen', async () => {
   await page.getByText('Waldschnepfe', { exact: true }).waitFor({ timeout: 2000 });
 });
 
-await check('Ansitz: Büchsenlicht ist gerechnet, nicht leer', async () => {
+await check('Ansitz: fünf Tage Licht, Antippen zeigt die Zeiten', async () => {
   await navBtn('Ansitz').click();
+  const rows = page.locator('button[aria-label*="Büchsenlicht"]');
+  const n = await rows.count();
+  if (n !== 5) throw new Error(n + ' Tagesbänder statt 5');
+  if (await app.locator('.serif').filter({ hasText: /^\d{2}:\d{2}$/ }).count()) throw new Error('Zeiten schon ohne Antippen offen');
+  await rows.nth(2).click();
   const times = await app.locator('.serif').filter({ hasText: /^\d{2}:\d{2}$/ }).allTextContents();
   if (times.length < 2) throw new Error('Büchsenlicht-Zeiten fehlen: ' + JSON.stringify(times));
-  notes.push('     Büchsenlicht ' + times.join(' – '));
+  notes.push('     Büchsenlicht übermorgen ' + times.join(' – '));
   const moon = await page.getByText(/Mond zu \d+ %|Dunkle Nacht|Helle Nacht/).count();
   if (!moon) throw new Error('Mondbewertung fehlt');
-});
-
-await check('Ansitz: Tagesnavigation rechnet neu', async () => {
-  const before = await app.locator('.serif').nth(1).textContent();
-  await page.getByRole('button', { name: 'Nächster Tag' }).click();
-  const after = await app.locator('.serif').nth(1).textContent();
-  if (before === after) throw new Error('Datum unverändert: ' + before);
-  await page.getByRole('button', { name: 'Vorheriger Tag' }).click();
+  if (await page.getByText('Wind', { exact: true }).count()) throw new Error('Wetter steht noch im Band');
+  await rows.nth(2).click();
 });
 
 await check('Einstellungen: Kartenzeichen auf Buchstaben umschaltbar', async () => {

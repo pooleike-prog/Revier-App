@@ -84,6 +84,8 @@ input, select, textarea, button { font-family: Lora, Georgia, serif; }
   --rule: #d3ceba; --muted: #66705c; --chip: #e3e0cf;
   --m-grass: #e2e3c5; --m-forest: #7e8a4e; --m-field: #e7dcb4; --m-water: #b0c3c3;
   --m-road: #f8f4e8; --m-stroke: #8d9268; --m-label: #3a4426;
+  /* Lichtband auf dem Ansitz-Screen: Büchsenlicht gelb, Mondlicht silbern. */
+  --bl: #e8c547; --moon: #d4dbe6;
 }
 
 .app[data-mapstyle="sat"] {
@@ -98,6 +100,7 @@ input, select, textarea, button { font-family: Lora, Georgia, serif; }
   --rule: #3a1a11; --muted: #c2503a; --chip: #231512;
   --m-grass: #1b0c08; --m-forest: #120705; --m-field: #25100a; --m-water: #0f0605;
   --m-road: #6b2817; --m-stroke: #4a1b10; --m-label: #ff7355;
+  --bl: #8a3018; --moon: #ff8a4a;
 }
 
 .scroll { overflow-y: auto; scrollbar-width: none; }

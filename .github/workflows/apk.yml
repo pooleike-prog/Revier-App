@@ -38,11 +38,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # Das Standardpaket "tools" gibt es in den aktuellen cmdline-tools nicht
-      # mehr; die Plattform holt Gradle bei Bedarf selbst.
-      - uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools'
+      - uses: android-actions/setup-android@v4
 
       - run: npm ci
 

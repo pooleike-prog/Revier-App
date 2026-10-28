@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppProvider, useApp } from './state/store';
 import { isStandalone, setThemeColor } from './lib/platform';
 import { DEVICE_H, DEVICE_W } from './data/constants';
@@ -110,7 +110,10 @@ function Canvas() {
 
 function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
   const { state: s, set } = useApp();
-  const light = useMemo(() => computeLight(s.dayOff, BUECHSENLICHT), [s.dayOff]);
+  // Alle zehn Minuten neu rechnen, damit Jetzt-Strich und Tageswechsel stimmen.
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 600000); return () => clearInterval(t); }, []);
+  const light = useMemo(() => computeLight(BUECHSENLICHT), [tick]);
 
   // Systemleisten mitfärben, damit der Rotlichtmodus nicht am Rand aufhört.
   useEffect(() => { setThemeColor(s.night); }, [s.night]);
