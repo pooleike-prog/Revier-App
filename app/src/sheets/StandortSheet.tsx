@@ -4,6 +4,7 @@ import type { AppState, LuftbildLand } from '../types';
 import { parse } from '../lib/geo';
 import { activeRevier } from '../lib/selectors';
 import { ankerFuer, lngLatToPx } from '../lib/projection';
+import { panFuer } from '../lib/mapInteraction';
 import { LAENDER, LUFTBILD, luftbildFuer } from '../lib/kartenquellen';
 import { block, chip, inputStyle, label } from '../lib/styles';
 import { sheetBody } from '../components/Sheet';
@@ -39,8 +40,8 @@ async function photon(pfad: string): Promise<Ort[]> {
 }
 
 /** pan so, dass Rasterpunkt `px` in der Fenstermitte (206, 260) liegt. */
-function panAuf(px: { x: number; y: number }, zoom: number) {
-  return { x: 206 - 200 * (1 - zoom) - zoom * px.x, y: 260 - 260 * (1 - zoom) - zoom * px.y };
+function panAuf(px: { x: number; y: number }, zoom: number, rot: number) {
+  return panFuer(px, { x: 206, y: 260 }, zoom, rot);
 }
 
 /** Mitte eines Reviers in Rasterpixeln (Mitte der Ausdehnung). */
@@ -54,7 +55,7 @@ export function revierMitte(points: string) {
 export function zumRevier(s: AppState, id: string): Partial<AppState> {
   const r = s.revierData.find(x => x.id === id);
   if (!r) return {};
-  return { pan: panAuf(revierMitte(r.points), s.zoom) };
+  return { pan: panAuf(revierMitte(r.points), s.zoom, s.rot) };
 }
 
 const fmtKoord = (lat: number, lng: number) =>
@@ -101,7 +102,7 @@ export function StandortSheet() {
 
   const springen = (o: Ort) => {
     set(p => ({
-      pan: panAuf(lngLatToPx(o.lng, o.lat), 2), zoom: 2, sheet: null,
+      pan: panAuf(lngLatToPx(o.lng, o.lat), 2, p.rot), zoom: 2, sheet: null,
       luftbild: o.land ?? p.luftbild,
     }));
     flash(`Karte bei ${o.name}`);
@@ -112,7 +113,7 @@ export function StandortSheet() {
     const a = ankerFuer({ lat: o.lat, lng: o.lng }, mitte);
     set(p => ({
       anker: { ...a, ort: o.name },
-      pan: panAuf(mitte, 1), zoom: 1, sheet: null,
+      pan: panAuf(mitte, 1, p.rot), zoom: 1, sheet: null,
       luftbild: o.land ?? p.luftbild,
     }));
     flash(`${act.name} liegt jetzt bei ${o.name}`);

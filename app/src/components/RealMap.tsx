@@ -17,6 +17,8 @@ import { useApp } from '../state/store';
 interface Props {
   pan: Point;
   zoom: number;
+  /** Drehung der Karte in Grad, im Uhrzeigersinn. */
+  rot?: number;
   art: MapStyle;
   night: boolean;
   /** Bekommt die Karte, sobald sie steht — für „Revier offline speichern“. */
@@ -31,11 +33,11 @@ interface Props {
 const ROT_TOPO = '-0.3 -0.59 -0.11 0 1  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0';
 const ROT_SAT = '0.3 0.59 0.11 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0';
 
-export function RealMap({ pan, zoom, art, night, onMap, vermerkOben }: Props) {
+export function RealMap({ pan, zoom, rot = 0, art, night, onMap, vermerkOben }: Props) {
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
-  const view = useRef({ pan, zoom });
-  view.current = { pan, zoom };
+  const view = useRef({ pan, zoom, rot });
+  view.current = { pan, zoom, rot };
   const [vermerk, setVermerk] = useState('');
   const [fehler, setFehler] = useState(false);
   const { anker, luftbild } = useApp().state;
@@ -43,10 +45,12 @@ export function RealMap({ pan, zoom, art, night, onMap, vermerkOben }: Props) {
   const folgen = () => {
     const m = map.current, el = box.current;
     if (!m || !el) return;
-    const { pan: p, zoom: z } = view.current;
-    const c = screenToPx(el.clientWidth / 2, el.clientHeight / 2, p, z);
+    const { pan: p, zoom: z, rot: r } = view.current;
+    const c = screenToPx(el.clientWidth / 2, el.clientHeight / 2, p, z, r);
     const ll = pxToLngLat(c.x, c.y);
-    m.jumpTo({ center: [ll.lng, ll.lat], zoom: mapLibreZoom(z) });
+    // MapLibre zählt die Peilung gegen den Uhrzeigersinn der Karte: Norden
+    // zeigt bei Peilung b um b nach links — also das Gegenteil der Drehung.
+    m.jumpTo({ center: [ll.lng, ll.lat], zoom: mapLibreZoom(z), bearing: -r });
   };
 
   useEffect(() => {
@@ -88,7 +92,7 @@ export function RealMap({ pan, zoom, art, night, onMap, vermerkOben }: Props) {
     return () => { aktuell = false; };
   }, [art, luftbild]);
 
-  useEffect(folgen, [pan.x, pan.y, zoom, anker.lat, anker.lng]);
+  useEffect(folgen, [pan.x, pan.y, zoom, rot, anker.lat, anker.lng]);
 
   const filterId = art === 'sat' ? 'rk-rot-sat' : 'rk-rot-topo';
 

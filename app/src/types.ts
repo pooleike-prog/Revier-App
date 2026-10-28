@@ -20,6 +20,9 @@ export type EntryTyp = 'Beobachtung' | 'Abschuss' | 'Ansitz';
 /** Planning tools: Schütze/Stand, Treibrichtung, Flächenteilung, Ausschnitt. */
 export type PlanTool = 'post' | 'arrow' | 'split' | 'extent';
 
+/** Schritte des geführten Planungsmodus nach der Revierwahl. */
+export type PlanSchritt = 'flaechen' | 'richtung';
+
 export interface Point { x: number; y: number; }
 
 export interface Marker {
@@ -73,6 +76,8 @@ export interface Jagd {
   art: JagdArt;
   datum: string;
   ort: string;
+  /** Revier, in dem gejagt wird (ältere Planungen haben keins). */
+  revier?: string;
 }
 
 /** One Treiben (Treibjagd) or Gebiet (Drückjagd) within a Jagd. */
@@ -128,7 +133,7 @@ export interface EntryForm {
 
 export type SheetKind =
   | 'marker' | 'field' | 'reviere' | 'legend'
-  | 'entry' | 'naming' | 'liste' | 'post' | 'newjagd' | 'standort';
+  | 'entry' | 'naming' | 'liste' | 'post' | 'newjagd' | 'standort' | 'planflaeche';
 
 /** Länder mit offenem Luftbild, siehe LUFTBILD in lib/kartenquellen.ts. */
 export type LuftbildLand = 'NI' | 'NW' | 'BB' | 'BY';
@@ -148,6 +153,8 @@ export interface AppState {
   aim: MarkerType | null;
   pan: Point;
   zoom: number;
+  /** Drehung der Revierkarte in Grad, im Uhrzeigersinn; 0 = Norden oben. */
+  rot: number;
   anker: KartenAnker;
   /** Bundesland, dessen Luftbild die Satellitenansicht zeigt. */
   luftbild: LuftbildLand;
@@ -183,6 +190,11 @@ export interface AppState {
   // ── Jagdplanung ──
   pPan: Point;
   pZoom: number;
+  pRot: number;
+  /** Gerade laufender Schritt des Planungsmodus, null = freie Planung. */
+  pSchritt: PlanSchritt | null;
+  /** Grenzpunkte der Fläche, die im Planungsmodus gerade entsteht. */
+  pDraw: Array<[number, number]> | null;
   selJagd: string;
   selTreiben: string | null;
   pTool: PlanTool | null;

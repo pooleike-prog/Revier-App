@@ -123,7 +123,7 @@ function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
 
   const title: Record<Screen, string> = {
     karte: act.name,
-    planung: jagd.art + ' ' + jagd.datum,
+    planung: jagd.id ? jagd.art + ' ' + jagd.datum : 'Jagdplanung',
     tagebuch: 'Jagdtagebuch',
     zeiten: 'Jagdzeiten',
     ansitz: 'Ansitz-Planung',
@@ -132,7 +132,7 @@ function AppFrame({ fullscreen = false }: { fullscreen?: boolean }) {
 
   const sub: Record<Screen, string> = {
     karte: `${fmt(ha(act.points), 0)} ha · ${kindLabel(act.kind)} · ${s.markers.filter(m => (m.revier || 'r1') === act.id).length} Marker`,
-    planung: myTreiben.length + (isDrueck ? ' Gebiete · ' : ' Treiben · ')
+    planung: !jagd.id ? 'Noch keine Planung' : myTreiben.length + (isDrueck ? ' Gebiete · ' : ' Treiben · ')
       + s.posts.filter(p => treibenIds.indexOf(p.treiben) >= 0).length + (isDrueck ? ' Stände' : ' Schützen'),
     tagebuch: `${s.journal.length} Einträge · Jagdjahr 2026/27`,
     zeiten: 'Niedersachsen · 4 Kategorien',

@@ -12,7 +12,7 @@ export const initialState: AppState = {
   zeichen: 'symbol',
 
   tool: null, radial: false, aim: null,
-  pan: { x: 6, y: 40 }, zoom: 1,
+  pan: { x: 6, y: 40 }, zoom: 1, rot: 0,
   anker: { ...KARTEN_ANKER, ort: 'Demo-Revier bei Hannover' },
   luftbild: 'NI',
   kreise: true,
@@ -28,7 +28,7 @@ export const initialState: AppState = {
   form: { typ: 'Beobachtung', wildart: 'Rehwild', gewicht: '', ort: 'Kanzel Eichenschlag', foto: false, text: '', melden: false },
 
   // ── Jagdplanung ──
-  pPan: { x: 6, y: 30 }, pZoom: 0.9,
+  pPan: { x: 6, y: 30 }, pZoom: 0.9, pRot: 0, pSchritt: null, pDraw: null,
   selJagd: 'j1', selTreiben: 't1', pTool: null, pPend: null, pView: 'all',
   njArt: 'Treibjagd', njDatum: '05.12.2026',
 

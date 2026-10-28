@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../state/store';
 import { compass } from '../lib/geo';
 import { currentJagd, treibenInBox, treibenOf } from '../lib/selectors';
-import { addTreibenPatch, extentPatch } from '../lib/planning';
+import { addTreibenPatch, extentPatch, jagdLoeschenPatch } from '../lib/planning';
 import { block, label, tag } from '../lib/styles';
 import { sheetBody } from '../components/Sheet';
 
@@ -18,21 +18,8 @@ export function ListeSheet() {
   /** Entfernt die Jagd samt Treiben, Ständen, Richtungen und Ausschnitten und
    *  springt auf die nächste verbleibende Jagd. */
   const jagdLoeschen = () => {
-    if (s.jagden.length < 2) { flash('Die letzte Planung bleibt — erst eine neue Jagd anlegen.'); return; }
     if (!fragen) { setFragen(true); return; }
-    const tids = new Set(myTreiben.map(t => t.id));
-    const rest = s.jagden.filter(j => j.id !== jagd.id);
-    const naechste = rest[0];
-    const erstes = s.treiben.filter(t => t.jagd === naechste.id).sort((a, b) => a.nr - b.nr)[0];
-    set(p => ({
-      jagden: p.jagden.filter(j => j.id !== jagd.id),
-      treiben: p.treiben.filter(t => !tids.has(t.id)),
-      posts: p.posts.filter(x => !tids.has(x.treiben)),
-      arrows: p.arrows.filter(a => !tids.has(a.treiben)),
-      extents: p.extents.filter(x => x.jagd !== jagd.id),
-      selJagd: naechste.id, selTreiben: erstes ? erstes.id : null,
-      pTool: null, pPend: null, pView: 'all', sheet: null,
-    }));
+    set(jagdLoeschenPatch(s, jagd.id));
     flash(`${jagd.art} vom ${jagd.datum} gelöscht.`);
   };
 
@@ -83,7 +70,7 @@ export function ListeSheet() {
             return (
               <div key={x.id} style={{ display: 'flex', gap: 8 }}>
                 <button
-                  onClick={() => { set(extentPatch(x)); set({ sheet: null }); }}
+                  onClick={() => { set(extentPatch(x, s.pRot)); set({ sheet: null }); }}
                   style={{ ...block(s.pView === x.id), flex: 1 }}
                 >
                   <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 3 }}>{x.name}</div>

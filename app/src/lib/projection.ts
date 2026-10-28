@@ -61,11 +61,10 @@ export function mapLibreZoom(appZoom: number): number {
 
 /** Kartenpixel unter einem Punkt des Kartenfensters — dieselbe Rechnung wie
  *  toMap() in mapInteraction.ts, nur ohne Ereignis. */
-export function screenToPx(sx: number, sy: number, pan: { x: number; y: number }, zoom: number) {
-  return {
-    x: (sx - pan.x - MAP_W / 2 * (1 - zoom)) / zoom,
-    y: (sy - pan.y - MAP_H / 2 * (1 - zoom)) / zoom,
-  };
+export function screenToPx(sx: number, sy: number, pan: { x: number; y: number }, zoom: number, rot = 0) {
+  const a = -rot * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  const vx = (sx - pan.x - MAP_W / 2) / zoom, vy = (sy - pan.y - MAP_H / 2) / zoom;
+  return { x: MAP_W / 2 + c * vx - s * vy, y: MAP_H / 2 + s * vx + c * vy };
 }
 
 /** Kachelnummern (XYZ, 256er-Raster) eines Gebiets in Rasterpixeln. */

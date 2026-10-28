@@ -1,4 +1,4 @@
-import type { AppState, Extent, RevierKind, Treiben } from '../types';
+import type { AppState, Extent, Jagd, RevierKind, Treiben } from '../types';
 
 export function kindLabel(kind: RevierKind): string {
   return kind === 'eigen' ? 'Eigenjagd' : kind === 'begeh' ? 'Begehungsschein' : 'Pacht';
@@ -8,8 +8,11 @@ export function activeRevier(s: AppState) {
   return s.revierData.find(r => r.id === s.activeRevier) ?? s.revierData[0];
 }
 
-export function currentJagd(s: AppState) {
-  return s.jagden.find(j => j.id === s.selJagd) ?? s.jagden[0];
+/** Steht, solange keine Planung angelegt ist — Kopfzeilen lesen daraus. */
+const KEINE_JAGD: Jagd = { id: '', art: 'Treibjagd', datum: '', ort: '' };
+
+export function currentJagd(s: AppState): Jagd {
+  return s.jagden.find(j => j.id === s.selJagd) ?? s.jagden[0] ?? KEINE_JAGD;
 }
 
 export function treibenOf(s: AppState, jagdId: string): Treiben[] {
